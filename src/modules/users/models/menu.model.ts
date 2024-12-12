@@ -18,10 +18,10 @@ export default class MenuModel extends Model {
   @Column({ type: DataType.INTEGER, allowNull: true })
   parentId?: number;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
+  @Column({ type: DataType.BOOLEAN, allowNull: true })
   isActive!: boolean;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 0 })
+  @Column({ type: DataType.INTEGER, allowNull: true })
   sortOrder!: number;
 
   @Column({ type: DataType.DATE, allowNull: false })

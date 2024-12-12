@@ -31,3 +31,5 @@ coverage/
 # Archivos generados
 *.log
 *.lock
+
+*.zip

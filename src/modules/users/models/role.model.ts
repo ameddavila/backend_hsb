@@ -8,7 +8,7 @@ export default class RoleModel extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   id!: number;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
+  @Column({ type: DataType.STRING(50), allowNull: false })
   name!: string;
 
   @Column({ type: DataType.STRING(255), allowNull: true })

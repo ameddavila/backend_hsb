@@ -11,13 +11,17 @@ import UserRoleModel from "./userRole.model";
 
 @Table({ tableName: "Users" })
 export default class UserModel extends Model {
-  @Column({ type: DataType.CHAR(36), primaryKey: true })
+  @Column({
+    type: DataType.UUID,
+    defaultValue: DataType.UUIDV4,
+    primaryKey: true,
+  })
   id!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
+  @Column({ type: DataType.STRING(50), allowNull: false })
   username!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, unique: true })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   email!: string;
 
   @Column({ type: DataType.STRING(255), allowNull: false })
@@ -32,7 +36,7 @@ export default class UserModel extends Model {
   @Column({ type: DataType.STRING(20), allowNull: true })
   phone?: string;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
+  @Column({ type: DataType.BOOLEAN, allowNull: true })
   isActive!: boolean;
 
   @Column({ type: DataType.STRING(255), allowNull: true })
