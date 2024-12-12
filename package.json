@@ -1,0 +1,53 @@
+{
+  "name": "backend_hsb",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --watch src --exec ts-node -r tsconfig-paths/register ./app.ts",
+    "build": "npm run clean && tsc",
+    "start": "node dist/app.js",
+    "clean": "rimraf dist",
+    "lint": "eslint . --ext .ts",
+    "test": "jest",
+    "prepare": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "fast-glob": "^3.3.2",
+    "helmet": "^8.0.0",
+    "joi": "^17.13.3",
+    "module-alias": "^2.2.3",
+    "sequelize": "^6.37.5",
+    "sequelize-typescript": "^2.1.6",
+    "tedious": "^18.6.1",
+    "tsconfig-paths": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^22.10.1",
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "_moduleAliases": {
+    "@": "dist",
+    "@config": "dist/config",
+    "@modules": "dist/modules",
+    "@users": "dist/modules/users",
+    "@auth": "dist/modules/auth",
+    "@middleware": "dist/middleware",
+    "@routes": "dist/routes",
+    "@utils": "dist/utils",
+    "@types": "dist/types"
+  }
+}
