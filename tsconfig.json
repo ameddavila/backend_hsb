@@ -10,7 +10,8 @@
       "@middleware/*": ["src/middleware/*"],
       "@routes/*": ["src/routes/*"],
       "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
+      "@types/*": ["src/types/*"],
+      "@relationships/*": ["src/relationships/*"]
     },
     "target": "ES2019",
     "module": "CommonJS",

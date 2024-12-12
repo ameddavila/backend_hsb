@@ -48,6 +48,7 @@
     "@middleware": "dist/middleware",
     "@routes": "dist/routes",
     "@utils": "dist/utils",
-    "@types": "dist/types"
+    "@types": "dist/types",
+    "@relationships": "dist/relationships"
   }
 }

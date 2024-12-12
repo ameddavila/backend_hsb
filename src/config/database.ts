@@ -1,14 +1,7 @@
-import { Sequelize } from "sequelize-typescript";
+import { Sequelize, ModelCtor, Model } from "sequelize-typescript";
 import dotenv from "dotenv";
-import {
-  UserModel,
-  RoleModel,
-  PermissionModel,
-  MenuModel,
-  UserRoleModel,
-  RolePermissionModel,
-  RoleMenuModel,
-} from "../modules/users/models";
+import path from "path";
+import { readdirSync } from "fs";
 
 dotenv.config();
 
@@ -34,18 +27,40 @@ try {
         timezone: "Z",
       },
     },
-    logging: false, //console.log,
+    logging: false,
     timezone: "America/La_Paz",
-    models: [
-      UserModel,
-      RoleModel,
-      PermissionModel,
-      MenuModel,
-      UserRoleModel,
-      RolePermissionModel,
-      RoleMenuModel,
-    ],
   });
+
+  // Función para cargar modelos dinámicamente
+  const loadModels = (
+    sequelize: Sequelize,
+    dir: string
+  ): ModelCtor<Model<any, any>>[] => {
+    const models: ModelCtor<Model<any, any>>[] = [];
+    const files = readdirSync(dir);
+    files.forEach((file) => {
+      if (file.endsWith(".model.ts") || file.endsWith(".model.js")) {
+        const modelPath = path.join(dir, file);
+        const model = require(modelPath).default;
+        if (model) {
+          models.push(model);
+        }
+      }
+    });
+    return models;
+  };
+
+  // Cargar y registrar modelos
+  const modulesDir = path.join(__dirname, "../modules");
+  const moduleFolders = readdirSync(modulesDir);
+  const models: ModelCtor<Model<any, any>>[] = [];
+
+  moduleFolders.forEach((folder) => {
+    const modelDir = path.join(modulesDir, folder, "models");
+    models.push(...loadModels(sequelize, modelDir));
+  });
+
+  sequelize.addModels(models);
 
   console.log(
     "✅ Modelos registrados en Sequelize:",

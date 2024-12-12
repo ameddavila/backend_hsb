@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import sequelize from "./src/config/database";
 import cors from "cors";
 import helmet from "helmet";
-import { initializeRelationships } from "./src/config/relationships"; // Alias para config/relationships
+import { initializeRelationships } from "./src/relationships/relationships"; // Alias para config/relationships
 import routes from "./src/routes"; // Alias para módulos
 
 dotenv.config();
