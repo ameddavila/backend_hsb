@@ -2,11 +2,11 @@ import "module-alias/register"; // Registrar alias
 import "reflect-metadata";
 import express from "express";
 import dotenv from "dotenv";
-import sequelize from "./src/config/database";
+import sequelize from "./config/database";
 import cors from "cors";
 import helmet from "helmet";
-import { initializeRelationships } from "./src/relationships/relationships"; // Alias para config/relationships
-import routes from "./src/routes"; // Alias para módulos
+import { initializeRelationships } from "./relationships/relationships"; // Alias para config/relationships
+import routes from "./routes"; // Alias para módulos
 
 dotenv.config();
 

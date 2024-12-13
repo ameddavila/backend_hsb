@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import sequelize from "@config/database"; // Importa la instancia de Sequelize
 import UserModel from "../../users/models/user.model";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
