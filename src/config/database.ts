@@ -1,7 +1,7 @@
 import { Sequelize, ModelCtor, Model } from "sequelize-typescript";
 import dotenv from "dotenv";
 import path from "path";
-import { readdirSync } from "fs";
+import { readdirSync, existsSync } from "fs";
 
 dotenv.config();
 
@@ -10,7 +10,7 @@ const isProduction = process.env.NODE_ENV === "production";
 let sequelize: Sequelize;
 
 try {
-  console.log("Iniciando configuración de Sequelize...");
+  console.log("🔧 Iniciando configuración de Sequelize...");
 
   sequelize = new Sequelize({
     database: process.env.DB_NAME,
@@ -37,16 +37,33 @@ try {
     dir: string
   ): ModelCtor<Model<any, any>>[] => {
     const models: ModelCtor<Model<any, any>>[] = [];
-    const files = readdirSync(dir);
-    files.forEach((file) => {
-      if (file.endsWith(".model.ts") || file.endsWith(".model.js")) {
-        const modelPath = path.join(dir, file);
-        const model = require(modelPath).default;
-        if (model) {
-          models.push(model);
+
+    try {
+      const files = readdirSync(dir);
+      console.log(`🔍 Buscando modelos en: ${dir}`);
+
+      files.forEach((file) => {
+        if (file.endsWith(".model.ts") || file.endsWith(".model.js")) {
+          const modelPath = path.join(dir, file);
+          const model = require(modelPath).default;
+
+          if (model && model.prototype instanceof Model) {
+            models.push(model);
+            console.log(`📂 Modelo cargado: ${file}`);
+          } else {
+            console.warn(
+              `⚠️ [database.ts] El archivo ${file} no exporta un modelo válido.`
+            );
+          }
         }
-      }
-    });
+      });
+    } catch (err) {
+      console.warn(
+        `⚠️ [database.ts] No se pudo leer el directorio ${dir}:`,
+        err
+      );
+    }
+
     return models;
   };
 
@@ -57,7 +74,20 @@ try {
 
   moduleFolders.forEach((folder) => {
     const modelDir = path.join(modulesDir, folder, "models");
-    models.push(...loadModels(sequelize, modelDir));
+
+    // Verificar si la carpeta 'models' existe y tiene archivos
+    if (existsSync(modelDir)) {
+      if (readdirSync(modelDir).length > 0) {
+        console.log(`📂 Cargando modelos para el módulo: ${folder}`);
+        models.push(...loadModels(sequelize, modelDir));
+      } else {
+        console.warn(
+          `⚠️ El módulo "${folder}" tiene la carpeta 'models' pero está vacía.`
+        );
+      }
+    } else {
+      console.warn(`⚠️ El módulo "${folder}" no tiene la carpeta 'models'.`);
+    }
   });
 
   sequelize.addModels(models);

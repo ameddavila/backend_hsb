@@ -43,10 +43,10 @@ export default class UserModel extends Model {
   profileImage?: string;
 
   @Column({ type: DataType.STRING(255), allowNull: true })
-  passwordResetToken?: string;
+  passwordResetToken: string | null;
 
   @Column({ type: DataType.DATE, allowNull: true })
-  passwordResetExpires?: Date;
+  passwordResetExpires: Date | null;
 
   @Column({ type: DataType.DATE, allowNull: false })
   createdAt!: Date;
