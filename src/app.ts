@@ -2,6 +2,8 @@ import "module-alias/register"; // Registrar alias
 import "reflect-metadata";
 import express from "express";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import xssClean from "xss-clean";
 import sequelize from "./config/database";
 import cors from "cors";
 import helmet from "helmet";
@@ -14,9 +16,12 @@ const app = express();
 
 // Middlewares globales
 app.use(express.json());
+app.use(cookieParser()); // Inicializar cookie-parser
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(helmet());
+app.use(xssClean());
 app.use("/api", routes);
+// Registrar rutas protegidas
 
 // Verifica si el entorno es desarrollo
 const forceBb = process.env.SYNC === "si";

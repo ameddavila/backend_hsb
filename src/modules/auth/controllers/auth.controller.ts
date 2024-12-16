@@ -1,82 +1,61 @@
-import { Request, Response, NextFunction } from "express";
-import UserModel from "../../users/models/user.model";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import Joi from "joi";
-import { Op } from "sequelize"; // Asegúrate de importar Op
+import { Request, Response } from "express";
+import { loginUser, refreshToken } from "../services/auth.service";
 
-// Validación para login con Joi
-const loginSchema = Joi.object({
-  usernameOrEmail: Joi.string().required(), // Puede ser username o email
-  password: Joi.string().min(8).required(),
-});
-
-export const login = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("🔍 [login] Iniciando proceso de autenticación...");
-
-    // Validar datos de entrada
-    const { error } = loginSchema.validate(req.body);
-    if (error) {
-      console.log(
-        `⚠️ [login] Error en validación de datos: ${error.details[0].message}`
-      );
-      res.status(400).json({ message: error.details[0].message });
-      return; // Salir de la función, no es necesario el return explícito para continuar
-    }
-
     const { usernameOrEmail, password } = req.body;
+    const { accessToken, refreshToken, csrfToken } = await loginUser(
+      usernameOrEmail,
+      password
+    );
 
-    // Buscar usuario por username o email
-    const user = await UserModel.findOne({
-      where: {
-        [Op.or]: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
-      },
+    // Configurar la cookie HttpOnly para el accessToken
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // En producción, requiere HTTPS
+      sameSite: "strict", // Evita CSRF
+      maxAge: 15 * 60 * 1000, // 15 minutos
     });
 
-    if (!user || !user.isActive) {
-      console.log(
-        `⚠️ [login] Usuario no encontrado o inactivo: ${usernameOrEmail}`
-      );
-      res.status(401).json({ message: "Usuario o contraseña incorrectos" });
-      return; // Salir de la función
-    }
+    // Configurar la cookie HttpOnly para el refreshToken
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+    });
 
-    // Verificar contraseña
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      console.log(
-        `⚠️ [login] Contraseña incorrecta para el usuario: ${usernameOrEmail}`
-      );
-      res.status(401).json({ message: "Usuario o contraseña incorrectos" });
-      return; // Salir de la función
-    }
-
-    console.log(
-      `✅ [login] Autenticación exitosa para el usuario: ${usernameOrEmail}`
-    );
-
-    // Generar tokens JWT
-    const accessToken = jwt.sign(
-      { id: user.id, username: user.username },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_ACCESS_EXPIRATION || "15m" }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: user.id },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d" }
-    );
-
-    // Enviar la respuesta
-    res.status(200).json({ accessToken, refreshToken });
+    // Devolver solo el CSRF token al cliente
+    res.json({ csrfToken });
   } catch (error) {
-    console.error("❌ [login] Error en el login:", error);
-    next(error); // Llamar al middleware de manejo de errores
+    res.status(401).json({
+      error: error instanceof Error ? error.message : "Error desconocido",
+    });
+  }
+};
+
+export const handleRefreshToken = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) throw new Error("Token de refresco no proporcionado");
+
+    const accessToken = await refreshToken(token);
+
+    // Configurar nueva cookie HttpOnly para accessToken
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000, // 15 minutos
+    });
+
+    res.sendStatus(200);
+  } catch (error) {
+    res.status(403).json({
+      error: error instanceof Error ? error.message : "Error desconocido",
+    });
   }
 };
