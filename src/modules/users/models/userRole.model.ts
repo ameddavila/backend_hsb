@@ -1,3 +1,4 @@
+// src/modules/users/models/userRole.model.ts
 import {
   Table,
   Column,
@@ -6,17 +7,17 @@ import {
   ForeignKey,
   BelongsTo,
 } from "sequelize-typescript";
-import UserModel from "./user.model";
-import RoleModel from "./role.model";
+import UserModel from "@modules/users/models/user.model";
+import RoleModel from "@modules/users/models/role.model";
 
 @Table({ tableName: "UserRoles" })
 export default class UserRoleModel extends Model {
   @ForeignKey(() => UserModel)
-  @Column({ type: DataType.CHAR(36), allowNull: false })
+  @Column({ type: DataType.CHAR(36), allowNull: false, primaryKey: true })
   userId!: string;
 
   @ForeignKey(() => RoleModel)
-  @Column({ type: DataType.INTEGER, allowNull: false })
+  @Column({ type: DataType.INTEGER, allowNull: false, primaryKey: true })
   roleId!: number;
 
   @BelongsTo(() => UserModel)

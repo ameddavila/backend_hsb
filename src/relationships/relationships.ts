@@ -1,39 +1,52 @@
-import RoleModel from "../modules/users/models/role.model";
-import PermissionModel from "../modules/users/models/permission.model";
-import RolePermissionModel from "../modules/users/models/rolePermission.model";
-import MenuModel from "../modules/users/models/menu.model";
-import RoleMenuModel from "../modules/users/models/roleMenu.model";
-
-// Eliminamos las asociaciones Usuarios ↔ Roles, ya que ya están definidas en los modelos.
+// src/relationships/relationships.ts
+import UserModel from "@modules/users/models/user.model";
+import RoleModel from "@modules/users/models/role.model";
+import PermissionModel from "@modules/users/models/permission.model";
+import MenuModel from "@modules/users/models/menu.model";
+import UserRoleModel from "@modules/users/models/userRole.model";
+import RolePermissionModel from "@modules/users/models/rolePermission.model";
+import RoleMenuModel from "@modules/users/models/roleMenu.model";
 
 export const initializeRelationships = (): void => {
-  // Relación muchos a muchos: Roles ↔ Permisos
+  // Usuarios ↔ Roles (Muchos a muchos)
+  UserModel.belongsToMany(RoleModel, {
+    through: UserRoleModel,
+    foreignKey: "userId",
+    otherKey: "roleId",
+    as: "roles", // Al consultar un usuario, se obtienen sus roles en "roles"
+  });
+  RoleModel.belongsToMany(UserModel, {
+    through: UserRoleModel,
+    foreignKey: "roleId",
+    otherKey: "userId",
+    as: "users", // Al consultar un rol, se obtienen los usuarios en "users"
+  });
+
+  // Roles ↔ Permisos (Muchos a muchos)
   RoleModel.belongsToMany(PermissionModel, {
     through: RolePermissionModel,
     foreignKey: "roleId",
     otherKey: "permissionId",
-    as: "permissions", // Un rol tendrá la propiedad "permissions"
+    as: "permissions", // Un rol tendrá sus permisos en "permissions"
   });
-
   PermissionModel.belongsToMany(RoleModel, {
     through: RolePermissionModel,
     foreignKey: "permissionId",
     otherKey: "roleId",
-    as: "linkedRoles", // Un permiso tendrá la propiedad "linkedRoles"
+    as: "roles", // Un permiso tendrá sus roles asociados en "roles"
   });
 
-  // Relación muchos a muchos: Roles ↔ Menús
+  // Roles ↔ Menús (Muchos a muchos)
   RoleModel.belongsToMany(MenuModel, {
     through: RoleMenuModel,
     foreignKey: "roleId",
     otherKey: "menuId",
-    as: "menus", // Un rol tendrá la propiedad "menus"
+    as: "menus", // Un rol tendrá los menús asignados en "menus"
   });
-
   MenuModel.belongsToMany(RoleModel, {
     through: RoleMenuModel,
     foreignKey: "menuId",
     otherKey: "roleId",
-    as: "menuRoles", // Un menú tendrá la propiedad "menuRoles"
+    as: "roles", // Un menú tendrá los roles asociados en "roles"
   });
 };

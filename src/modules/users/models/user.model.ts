@@ -1,13 +1,6 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  BelongsToMany,
-  Index,
-} from "sequelize-typescript";
-import UserRoleModel from "./userRole.model";
-import RoleModel from "./role.model";
+// src/modules/users/models/user.model.ts
+import { Table, Column, Model, DataType, Index } from "sequelize-typescript";
+import RoleModel from "@modules/users/models/role.model";
 
 @Table({ tableName: "Users" })
 export default class UserModel extends Model {
@@ -18,32 +11,26 @@ export default class UserModel extends Model {
   })
   id!: string;
 
-  @Index({ unique: true }) // Índice único separado para `username`
+  @Index({ unique: true })
   @Column({
     type: DataType.STRING(50),
     allowNull: false,
-    validate: {
-      len: [3, 50], // Validación de longitud
-    },
+    validate: { len: [3, 50] },
   })
   username!: string;
 
-  @Index({ unique: true }) // Índice único separado para `email`
+  @Index({ unique: true })
   @Column({
     type: DataType.STRING(100),
     allowNull: false,
-    validate: {
-      isEmail: true, // Validación de formato de email
-    },
+    validate: { isEmail: true },
   })
   email!: string;
 
   @Column({
     type: DataType.STRING(255),
     allowNull: false,
-    validate: {
-      len: [8, 255], // La contraseña debe tener al menos 8 caracteres
-    },
+    validate: { len: [8, 255] },
   })
   password!: string;
 
@@ -102,12 +89,5 @@ export default class UserModel extends Model {
     defaultValue: DataType.NOW,
   })
   updatedAt!: Date;
-
-  @BelongsToMany(() => RoleModel, {
-    through: { model: () => UserRoleModel },
-    foreignKey: "userId",
-    otherKey: "roleId",
-    as: "roles",
-  })
   roles?: RoleModel[];
 }

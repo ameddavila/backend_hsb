@@ -12,6 +12,7 @@ let sequelize: Sequelize;
 try {
   console.log("🔧 Iniciando configuración de Sequelize...");
 
+  // Crear instancia de Sequelize con configuración
   sequelize = new Sequelize({
     database: process.env.DB_NAME,
     username: process.env.DB_USER,
@@ -31,7 +32,7 @@ try {
     timezone: "America/La_Paz",
   });
 
-  // Función para cargar modelos dinámicamente
+  // Función para cargar modelos dinámicamente desde un directorio
   const loadModels = (
     sequelize: Sequelize,
     dir: string
@@ -45,6 +46,7 @@ try {
       files.forEach((file) => {
         if (file.endsWith(".model.ts") || file.endsWith(".model.js")) {
           const modelPath = path.join(dir, file);
+          // Importar el modelo usando require, y obtener la propiedad default
           const model = require(modelPath).default;
 
           if (model && model.prototype instanceof Model) {
@@ -67,15 +69,16 @@ try {
     return models;
   };
 
-  // Cargar y registrar modelos
+  // Directorio de módulos (donde se encuentran los subdirectorios de cada módulo)
   const modulesDir = path.join(__dirname, "../modules");
   const moduleFolders = readdirSync(modulesDir);
   const models: ModelCtor<Model<any, any>>[] = [];
 
+  // Iterar por cada carpeta de módulo y buscar la subcarpeta 'models'
   moduleFolders.forEach((folder) => {
     const modelDir = path.join(modulesDir, folder, "models");
 
-    // Verificar si la carpeta 'models' existe y tiene archivos
+    // Verificar si la carpeta 'models' existe y contiene archivos
     if (existsSync(modelDir)) {
       if (readdirSync(modelDir).length > 0) {
         console.log(`📂 Cargando modelos para el módulo: ${folder}`);
@@ -90,8 +93,10 @@ try {
     }
   });
 
+  // Registrar todos los modelos en la instancia de Sequelize
   sequelize.addModels(models);
 
+  // Log para confirmar qué modelos se han registrado
   console.log(
     "✅ Modelos registrados en Sequelize:",
     Object.keys(sequelize.models)

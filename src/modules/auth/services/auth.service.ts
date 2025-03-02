@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { createHmac } from "crypto";
-import UserModel from "../../users/models/user.model"; // Asegúrate de importar el modelo correcto
-import RoleModel from "../../users/models/role.model";
+import UserModel from "@modules/users/models/user.model";
+import RoleModel from "@modules/users/models/role.model";
 import { Op } from "sequelize";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
@@ -19,6 +19,12 @@ export const loginUser = async (
 }> => {
   try {
     // Buscar usuario por username o email e incluir los roles
+    /*
+    console.log(
+      "UserModel.sequelize:",
+      UserModel.sequelize ? "Inicializado" : "No inicializado"
+    );
+    */
     const user = await UserModel.findOne({
       where: {
         [Op.or]: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
