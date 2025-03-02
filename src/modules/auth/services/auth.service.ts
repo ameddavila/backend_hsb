@@ -9,17 +9,6 @@ const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
 const CSRF_SECRET = process.env.CSRF_SECRET || "default_csrf_secret";
 
-export const verifyAccessToken = (
-  token: string
-): { userId: string; roleId: number; roleName: string } => {
-  const payload = jwt.verify(token, ACCESS_TOKEN_SECRET) as {
-    userId: string;
-    roleId: number;
-    roleName: string;
-  };
-  return payload;
-};
-
 export const loginUser = async (
   usernameOrEmail: string,
   password: string

@@ -9,6 +9,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { initializeRelationships } from "./relationships/relationships"; // Alias para config/relationships
 import routes from "./routes"; // Alias para módulos
+import { errorMiddleware } from "./middleware/error.middleware";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(helmet());
 app.use(xssClean());
 app.use("/api", routes);
+app.use(errorMiddleware);
 // Registrar rutas protegidas
 
 // Verifica si el entorno es desarrollo

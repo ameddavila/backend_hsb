@@ -30,6 +30,5 @@ export default class MenuModel extends Model {
   @Column({ type: DataType.DATE, allowNull: false })
   updatedAt!: Date;
 
-  @HasMany(() => RoleMenuModel, { as: "menuRoles" })
   menuRoles!: RoleMenuModel[];
 }

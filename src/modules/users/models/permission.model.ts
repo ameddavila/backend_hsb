@@ -19,10 +19,6 @@ export default class PermissionModel extends Model {
   @Column({ type: DataType.STRING(50), allowNull: false })
   action!: string;
 
-  @ForeignKey(() => RolePermissionModel)
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  roleId!: number;
-
   @Column({ type: DataType.DATE, allowNull: false })
   createdAt!: Date;
 
