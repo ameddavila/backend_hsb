@@ -67,9 +67,13 @@ export const loginUser = async (
     );
 
     // Generar Refresh Token
-    const refreshToken = jwt.sign({ userId: user.id }, REFRESH_TOKEN_SECRET, {
-      expiresIn: "7d",
-    });
+    const refreshToken = jwt.sign(
+      { userId: user.id, roleId: userRole.id, roleName: userRole.name },
+      REFRESH_TOKEN_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
 
     // Generar CSRF Token basado en el ID del usuario
     const csrfToken = createHmac("sha256", CSRF_SECRET)
@@ -86,11 +90,26 @@ export const loginUser = async (
 };
 
 export const refreshToken = async (token: string): Promise<string> => {
-  const payload = jwt.verify(token, REFRESH_TOKEN_SECRET) as { userId: string };
-  const accessToken = jwt.sign(
-    { userId: payload.userId },
-    ACCESS_TOKEN_SECRET,
-    { expiresIn: "15m" }
-  );
-  return accessToken;
+  try {
+    const payload = jwt.verify(token, REFRESH_TOKEN_SECRET) as {
+      userId: string;
+      roleId: number;
+      roleName: string;
+    };
+
+    // 🔹 Ahora se incluyen `roleId` y `roleName` en el nuevo accessToken
+    const accessToken = jwt.sign(
+      {
+        userId: payload.userId,
+        roleId: payload.roleId,
+        roleName: payload.roleName,
+      },
+      ACCESS_TOKEN_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    return accessToken;
+  } catch (error) {
+    throw new Error("Error al renovar el token");
+  }
 };
