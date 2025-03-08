@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "@middleware/auth.middleware"; // Asegura autenticación
+
 import { checkPermission } from "@middleware/permission.middleware";
 import {
   getUsers,

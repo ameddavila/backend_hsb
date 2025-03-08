@@ -1,26 +1,35 @@
-import { Request, Response, NextFunction } from "express";
-import { JwtPayload } from "jsonwebtoken";
-import { verifyAccessToken } from "../modules/auth/services/jwt.service";
-import logger from "../utils/logger";
+import { NextFunction, Response } from "express";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { AuthenticatedRequest } from "../types/custom";
+
+interface DecodedUser {
+  userId: string;
+  roleId: number;
+  roleName: string;
+}
 
 export const authMiddleware = (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): void => {
+  const token = req.cookies["jwt"];
+
+  if (!token) {
+    res.status(401).json({ error: "Token requerido" });
+    return;
+  }
+
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Token requerido" }); // 🔹 Evita el acceso sin autenticación
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload &
+      DecodedUser;
+
+    if (!decoded.userId || !decoded.roleId || !decoded.roleName) {
+      res.status(403).json({ message: "Token inválido" });
+      return;
     }
 
-    const decoded = verifyAccessToken(token) as JwtPayload & {
-      userId: string;
-      roleId: number;
-      roleName: string;
-    };
-
-    (req as any).user = {
+    req.user = {
       userId: decoded.userId,
       roleId: decoded.roleId,
       roleName: decoded.roleName,
@@ -28,7 +37,6 @@ export const authMiddleware = (
 
     next();
   } catch (error) {
-    logger.error("Error en autenticación:", error);
-    res.status(401).json({ error: "Token inválido o expirado" });
+    res.status(403).json({ message: "Token inválido o expirado" });
   }
 };

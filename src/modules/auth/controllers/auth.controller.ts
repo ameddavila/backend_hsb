@@ -1,18 +1,32 @@
-// ==================== AUTH CONTROLLER ====================
 import { Request, Response } from "express";
 import { loginUser } from "../services/auth.service";
 import { generateAccessToken } from "../services/jwt.service";
+import { log } from "console";
 
-export const login = async (req: Request, res: Response) => {
-  const { usernameOrEmail, password } = req.body;
+export const login = async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log("llego", req.body);
+    const { usernameOrEmail, password } = req.body;
 
-  const result = await loginUser(usernameOrEmail, password);
+    if (!usernameOrEmail || !password) {
+      res
+        .status(400)
+        .json({ message: "El email/username y la contraseña son requeridos." });
+      return;
+    }
 
-  if (!result.success) {
-    return res.status(result.status).json({ message: result.message });
+    const result = await loginUser(usernameOrEmail, password);
+
+    if (!result.success) {
+      res.status(result.status).json({ message: result.message });
+      return;
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error en login:", error);
+    res.status(500).json({ message: "Error en el servidor" });
   }
-
-  return res.json(result);
 };
 
 export const handleRefreshToken = async (
@@ -21,18 +35,19 @@ export const handleRefreshToken = async (
 ): Promise<void> => {
   try {
     const refreshToken = req.cookies.refreshToken;
+
     if (!refreshToken) {
       res.status(403).json({ error: "Token de refresco no proporcionado" });
       return;
     }
 
-    const newAccessToken = generateAccessToken({ refreshToken }); // 🔹 Ahora usamos la función correcta
+    const newAccessToken = generateAccessToken({ refreshToken });
 
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 15 * 60 * 1000,
+      maxAge: 15 * 60 * 1000, // 15 minutos
     });
 
     res.status(200).json({ message: "Token refrescado exitosamente" });
@@ -41,16 +56,5 @@ export const handleRefreshToken = async (
     res.status(403).json({
       error: error instanceof Error ? error.message : "Error desconocido",
     });
-  }
-};
-
-export const logout = async (req: Request, res: Response): Promise<void> => {
-  try {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
-    res.clearCookie("csrfToken");
-    res.status(200).json({ message: "Sesión cerrada" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al cerrar sesión" });
   }
 };
