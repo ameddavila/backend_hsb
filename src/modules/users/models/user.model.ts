@@ -1,4 +1,3 @@
-// src/modules/users/models/user.model.ts
 import { Table, Column, Model, DataType, Index } from "sequelize-typescript";
 import RoleModel from "@modules/users/models/role.model";
 
@@ -55,7 +54,7 @@ export default class UserModel extends Model {
   @Column({
     type: DataType.BOOLEAN,
     allowNull: false,
-    defaultValue: true,
+    defaultValue: true, // ✅ Corrección aquí: eliminamos Sequelize.literal
   })
   isActive!: boolean;
 
@@ -90,5 +89,6 @@ export default class UserModel extends Model {
     defaultValue: DataType.NOW,
   })
   updatedAt!: Date;
+
   roles?: RoleModel[];
 }

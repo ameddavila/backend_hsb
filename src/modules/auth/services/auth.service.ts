@@ -8,11 +8,15 @@ import RoleModel from "@modules/users/models/role.model";
 export const loginUser = async (
   usernameOrEmail: string,
   password: string
-): Promise<{
-  accessToken: string;
-  refreshToken: string;
-  csrfToken: string;
-}> => {
+): Promise<
+  | {
+      success: true;
+      accessToken: string;
+      refreshToken: string;
+      csrfToken: string;
+    }
+  | { success: false; status: number; message: string }
+> => {
   try {
     const user = await UserModel.findOne({
       where: {
@@ -27,17 +31,28 @@ export const loginUser = async (
       ],
     });
 
-    if (!user) throw new Error("Usuario no encontrado");
+    if (!user) {
+      return { success: false, status: 404, message: "Usuario no encontrado" };
+    }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) throw new Error("Contraseña incorrecta");
+    if (!isPasswordValid) {
+      return { success: false, status: 401, message: "Contraseña incorrecta" };
+    }
+
+    if (!user.isActive) {
+      return { success: false, status: 403, message: "Usuario inactivo" };
+    }
 
     const userRole = user.roles?.[0];
-    if (!userRole) throw new Error("El usuario no tiene roles asignados");
+    if (!userRole) {
+      return {
+        success: false,
+        status: 403,
+        message: "El usuario no tiene roles asignados",
+      };
+    }
 
-    if (!user.isActive) throw new Error("Usuario inactivo");
-
-    // Generar tokens correctamente
     const accessToken = generateAccessToken({
       userId: user.id,
       roleId: userRole.id,
@@ -52,10 +67,12 @@ export const loginUser = async (
 
     const csrfToken = generateCsrfToken(user.id);
 
-    return { accessToken, refreshToken, csrfToken };
+    return { success: true, accessToken, refreshToken, csrfToken };
   } catch (error: unknown) {
-    throw new Error(
-      error instanceof Error ? error.message : "Error en el inicio de sesión"
-    );
+    return {
+      success: false,
+      status: 500,
+      message: "Error en el inicio de sesión",
+    };
   }
 };

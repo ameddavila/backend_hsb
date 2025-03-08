@@ -1,16 +1,20 @@
 import { Router } from "express";
+import { authMiddleware } from "@middleware/auth.middleware"; // Asegura autenticación
+import { checkPermission } from "@middleware/permission.middleware";
 import {
-  createUser,
   getUsers,
+  createUser,
   updateUser,
   deleteUser,
 } from "../controllers/user.controller";
 
 const router = Router();
 
-router.post("/register", createUser); // Crear usuario
-router.get("/", getUsers); // Obtener lista de usuarios
-router.put("/:id", updateUser); // Actualizar usuario
-router.delete("/:id", deleteUser); // Desactivar usuario
+router.use(authMiddleware); // Aplica autenticación en todas las rutas
+
+router.post("/register", checkPermission(["admin"]), createUser);
+router.get("/", checkPermission(["admin", "user"]), getUsers);
+router.put("/:id", checkPermission(["admin"]), updateUser);
+router.delete("/:id", checkPermission(["admin"]), deleteUser);
 
 export default router;

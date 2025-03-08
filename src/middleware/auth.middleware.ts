@@ -20,11 +20,13 @@ export const authMiddleware = (
       roleName: string;
     };
 
-    req.user = {
+    // 🔹 Asegurar que TypeScript reconoce `req.user`
+    (req as any).user = {
       userId: decoded.userId,
       roleId: decoded.roleId,
       roleName: decoded.roleName,
     };
+
     next();
   } catch (error) {
     logger.error("Error en autenticación:", error);

@@ -49,12 +49,12 @@
     "typescript": "^5.7.2"
   },
   "_moduleAliases": {
-    "@config": "dist/config",
-    "@modules": "dist/modules",
-    "@middleware": "dist/middleware",
-    "@routes": "dist/routes",
-    "@utils": "dist/utils",
-    "@types": "dist/types",
-    "@relationships": "dist/relationships"
+    "@config": "./src/config",
+    "@modules": "./src/modules",
+    "@middleware": "./src/middleware",
+    "@routes": "./src/routes",
+    "@utils": "./src/utils",
+    "@types": "./src/types",
+    "@relationships": "./src/relationships"
   }
 }

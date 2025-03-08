@@ -24,7 +24,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true })); // CORS
 app.use(helmet()); // Configuración de cabeceras de seguridad
 app.use(xssClean()); // Limpieza de datos contra XSS
 app.use("/api", routes); // Montar las rutas principales en "/api"
-app.use(errorMiddleware); // Middleware global de manejo de errores
+app.use(errorMiddleware as express.ErrorRequestHandler);
 
 // 4. Definir si se forzará la sincronización de la DB (solo en desarrollo)
 const forceBb = process.env.SYNC === "si";

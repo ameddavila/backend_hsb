@@ -3,35 +3,16 @@ import { Request, Response } from "express";
 import { loginUser } from "../services/auth.service";
 import { generateAccessToken } from "../services/jwt.service";
 
-export const login = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { usernameOrEmail, password } = req.body;
-    const { accessToken, refreshToken, csrfToken } = await loginUser(
-      usernameOrEmail,
-      password
-    );
+export const login = async (req: Request, res: Response) => {
+  const { usernameOrEmail, password } = req.body;
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 15 * 60 * 1000, // 15 minutos
-    });
+  const result = await loginUser(usernameOrEmail, password);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-    });
-
-    res.json({ csrfToken });
-  } catch (error) {
-    console.error("❌ Error en login:", error);
-    res.status(401).json({
-      error: error instanceof Error ? error.message : "Error desconocido",
-    });
+  if (!result.success) {
+    return res.status(result.status).json({ message: result.message });
   }
+
+  return res.json(result);
 };
 
 export const handleRefreshToken = async (
