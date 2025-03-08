@@ -34,7 +34,7 @@ export default class RefreshTokenModel extends Model {
 
   @Column({
     type: DataType.BOOLEAN,
-    defaultValue: true, // Activo por defecto
+    defaultValue: true,
   })
-  isActive!: boolean;
+  isActive!: boolean; // ✅ Evita que un refreshToken sea reutilizado tras logout
 }

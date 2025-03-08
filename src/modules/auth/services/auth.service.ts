@@ -4,31 +4,15 @@ import bcrypt from "bcrypt";
 import { Op } from "sequelize";
 import UserModel from "@modules/users/models/user.model";
 import RoleModel from "@modules/users/models/role.model";
+import RefreshTokenModel from "../models/refreshToken.model";
 
-export const loginUser = async (
-  usernameOrEmail: string,
-  password: string
-): Promise<
-  | {
-      success: true;
-      accessToken: string;
-      refreshToken: string;
-      csrfToken: string;
-    }
-  | { success: false; status: number; message: string }
-> => {
+export const loginUser = async (usernameOrEmail: string, password: string) => {
   try {
     const user = await UserModel.findOne({
       where: {
         [Op.or]: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
       },
-      include: [
-        {
-          model: RoleModel,
-          as: "roles",
-          through: { attributes: [] },
-        },
-      ],
+      include: [{ model: RoleModel, as: "roles", through: { attributes: [] } }],
     });
 
     if (!user) {
@@ -53,22 +37,26 @@ export const loginUser = async (
       };
     }
 
+    // ✅ Generar tokens
     const accessToken = generateAccessToken({
       userId: user.id,
       roleId: userRole.id,
       roleName: userRole.name,
     });
+    const refreshToken = generateRefreshToken({ userId: user.id });
 
-    const refreshToken = generateRefreshToken({
+    // ✅ Guardar `refreshToken` en la base de datos
+    await RefreshTokenModel.create({
       userId: user.id,
-      roleId: userRole.id,
-      roleName: userRole.name,
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días
+      isActive: true,
     });
 
     const csrfToken = generateCsrfToken(user.id);
 
     return { success: true, accessToken, refreshToken, csrfToken };
-  } catch (error: unknown) {
+  } catch (error) {
     return {
       success: false,
       status: 500,
