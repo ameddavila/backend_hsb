@@ -55,6 +55,7 @@ export default class UserModel extends Model {
   @Column({
     type: DataType.BOOLEAN,
     allowNull: false,
+    defaultValue: true,
   })
   isActive!: boolean;
 

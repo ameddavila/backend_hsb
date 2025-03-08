@@ -1,13 +1,9 @@
-import jwt from "jsonwebtoken";
+import { generateAccessToken, generateRefreshToken } from "./jwt.service";
+import { generateCsrfToken } from "./csrf.service";
 import bcrypt from "bcrypt";
-import { createHmac } from "crypto";
+import { Op } from "sequelize";
 import UserModel from "@modules/users/models/user.model";
 import RoleModel from "@modules/users/models/role.model";
-import { Op } from "sequelize";
-
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
-const CSRF_SECRET = process.env.CSRF_SECRET || "default_csrf_secret";
 
 export const loginUser = async (
   usernameOrEmail: string,
@@ -18,13 +14,6 @@ export const loginUser = async (
   csrfToken: string;
 }> => {
   try {
-    // Buscar usuario por username o email e incluir los roles
-    /*
-    console.log(
-      "UserModel.sequelize:",
-      UserModel.sequelize ? "Inicializado" : "No inicializado"
-    );
-    */
     const user = await UserModel.findOne({
       where: {
         [Op.or]: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
@@ -32,84 +21,41 @@ export const loginUser = async (
       include: [
         {
           model: RoleModel,
-          as: "roles", // Usando el alias configurado en `relationships.ts`
-          through: { attributes: [] }, // No incluir datos de la tabla intermedia
+          as: "roles",
+          through: { attributes: [] },
         },
       ],
     });
 
-    // Verificar que el usuario exista
-    if (!user) {
-      throw new Error("Usuario no encontrado");
-    }
+    if (!user) throw new Error("Usuario no encontrado");
 
-    // Verificar contraseña
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new Error("Contraseña incorrecta");
-    }
+    if (!isPasswordValid) throw new Error("Contraseña incorrecta");
 
-    // Extraer el primer rol del usuario (si tiene múltiples roles)
     const userRole = user.roles?.[0];
-    if (!userRole) {
-      throw new Error("El usuario no tiene roles asignados");
-    }
+    if (!userRole) throw new Error("El usuario no tiene roles asignados");
 
-    // Generar Access Token
-    const accessToken = jwt.sign(
-      {
-        userId: user.id,
-        roleId: userRole.id,
-        roleName: userRole.name,
-      },
-      ACCESS_TOKEN_SECRET,
-      { expiresIn: "15m" }
-    );
+    if (!user.isActive) throw new Error("Usuario inactivo");
 
-    // Generar Refresh Token
-    const refreshToken = jwt.sign(
-      { userId: user.id, roleId: userRole.id, roleName: userRole.name },
-      REFRESH_TOKEN_SECRET,
-      {
-        expiresIn: "7d",
-      }
-    );
+    // Generar tokens correctamente
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      roleId: userRole.id,
+      roleName: userRole.name,
+    });
 
-    // Generar CSRF Token basado en el ID del usuario
-    const csrfToken = createHmac("sha256", CSRF_SECRET)
-      .update(user.id.toString())
-      .digest("hex");
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      roleId: userRole.id,
+      roleName: userRole.name,
+    });
+
+    const csrfToken = generateCsrfToken(user.id);
 
     return { accessToken, refreshToken, csrfToken };
   } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(error.message || "Error en el inicio de sesión");
-    }
-    throw new Error("Error desconocido en el inicio de sesión");
-  }
-};
-
-export const refreshToken = async (token: string): Promise<string> => {
-  try {
-    const payload = jwt.verify(token, REFRESH_TOKEN_SECRET) as {
-      userId: string;
-      roleId: number;
-      roleName: string;
-    };
-
-    // 🔹 Ahora se incluyen `roleId` y `roleName` en el nuevo accessToken
-    const accessToken = jwt.sign(
-      {
-        userId: payload.userId,
-        roleId: payload.roleId,
-        roleName: payload.roleName,
-      },
-      ACCESS_TOKEN_SECRET,
-      { expiresIn: "15m" }
+    throw new Error(
+      error instanceof Error ? error.message : "Error en el inicio de sesión"
     );
-
-    return accessToken;
-  } catch (error) {
-    throw new Error("Error al renovar el token");
   }
 };

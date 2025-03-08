@@ -1,20 +1,12 @@
 import { Router } from "express";
-import { login } from "../controllers/auth.controller";
-import { handleRefreshToken } from "../controllers/auth.controller";
-import rateLimit from "express-rate-limit";
-
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // Máximo 5 intentos de login por IP
-  message: "Demasiados intentos de login, intenta más tarde",
-});
+import { login, handleRefreshToken } from "../controllers/auth.controller";
 
 const router = Router();
 
-// Ruta para el login
+// ✅ Ruta de inicio de sesión
 router.post("/login", login);
 
-// Ruta para renovar el accessToken
+// ✅ Ruta de actualización del token
 router.post("/refresh", handleRefreshToken);
 
 export default router;

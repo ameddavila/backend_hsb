@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
+import { JwtPayload } from "jsonwebtoken";
 import { verifyAccessToken } from "../modules/auth/services/jwt.service";
+import logger from "../utils/logger";
 
 export const authMiddleware = (
   req: Request,
@@ -8,13 +10,16 @@ export const authMiddleware = (
 ): void => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) throw new Error("Token no encontrado");
+    if (!token) {
+      return next(); // Permitir acceso a rutas públicas
+    }
 
-    const decoded = verifyAccessToken(token) as {
+    const decoded = verifyAccessToken(token) as JwtPayload & {
       userId: string;
       roleId: number;
       roleName: string;
     };
+
     req.user = {
       userId: decoded.userId,
       roleId: decoded.roleId,
@@ -22,6 +27,7 @@ export const authMiddleware = (
     };
     next();
   } catch (error) {
+    logger.error("Error en autenticación:", error);
     res.status(401).json({ error: "Token inválido o expirado" });
   }
 };

@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import UserModel from "../models/user.model";
+import RoleModel from "@modules/users/models/role.model";
+import UserRoleModel from "@modules/users/models/userRole.model";
 import bcrypt from "bcrypt";
 import Joi from "joi";
 import { Op } from "sequelize";
@@ -20,30 +22,33 @@ export const createUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  //console.log("LLEGAS", req.body);
   try {
-    // Validar datos de entrada
+    // Validar datos de entrada con Joi (o Zod si usas otro esquema)
     const { error } = userSchema.validate(req.body);
     if (error) {
       res.status(400).json({ message: error.details[0].message });
-      return; // Finaliza la ejecución
+      return;
     }
 
-    const { username, email, password, firstName, lastName, phone, isActive } =
-      req.body;
+    const { username, email, password, firstName, lastName, phone } = req.body;
 
-    // Verificar si el username o email ya existen
+    // Verificar si ya existe usuario o email
     const existingUser = await UserModel.findOne({
       where: { [Op.or]: [{ username }, { email }] },
     });
+
     if (existingUser) {
-      res.status(409).json({ message: "Username o email ya en uso." });
-      return; // Finaliza la ejecución
+      res
+        .status(409)
+        .json({ field: "username", message: "Usuario o correo ya en uso." });
+      return;
     }
 
     // Encriptar la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear el usuario
+    // Crear el usuario en la base de datos
     const newUser = await UserModel.create({
       username,
       email,
@@ -51,15 +56,33 @@ export const createUser = async (
       firstName,
       lastName,
       phone,
-      isActive,
+      isActive: true, // 🔹 Asegurar que el usuario esté activo
     });
 
-    res
-      .status(201)
-      .json({ message: "Usuario creado exitosamente", user: newUser });
+    // Asignar el rol "Invitado" automáticamente
+    const invitedRole = await RoleModel.findOne({
+      where: { name: "Invitado" },
+    });
+
+    if (!invitedRole) {
+      res
+        .status(400)
+        .json({ message: "El rol Invitado no existe en la base de datos." });
+      return;
+    }
+
+    await UserRoleModel.create({
+      userId: newUser.id,
+      roleId: invitedRole.id,
+    });
+
+    res.status(201).json({
+      message: "Usuario registrado correctamente.",
+      user: newUser,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error al crear usuario", error });
+    res.status(500).json({ message: "Error al crear usuario.", error });
   }
 };
 

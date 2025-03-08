@@ -5,6 +5,7 @@ export const generateCsrfToken = (userId: string): string => {
   return crypto.createHmac("sha256", secret).update(userId).digest("hex");
 };
 
+// 🔹 Asegurarnos de exportar correctamente la función
 export const validateCsrfToken = (userId: string, token: string): boolean => {
   const expectedToken = generateCsrfToken(userId);
   return expectedToken === token;
