@@ -11,7 +11,7 @@ export const authMiddleware = (
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
-      return next(); // Permitir acceso a rutas públicas
+      return res.status(401).json({ error: "Token requerido" }); // 🔹 Evita el acceso sin autenticación
     }
 
     const decoded = verifyAccessToken(token) as JwtPayload & {
@@ -20,7 +20,6 @@ export const authMiddleware = (
       roleName: string;
     };
 
-    // 🔹 Asegurar que TypeScript reconoce `req.user`
     (req as any).user = {
       userId: decoded.userId,
       roleId: decoded.roleId,
