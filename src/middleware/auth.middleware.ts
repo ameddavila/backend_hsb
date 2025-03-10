@@ -1,28 +1,32 @@
-import { NextFunction, Response } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { AuthenticatedRequest } from "../types/custom";
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
-export const authMiddleware = (
-  req: AuthenticatedRequest,
+export const authenticateToken = (
+  req: Request,
   res: Response,
   next: NextFunction
-): void => {
-  const token = req.cookies["jwt"];
+): Response | void => {
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    res.status(401).json({ error: "Token requerido" });
-    return;
+    return res.status(401).json({ error: "Token requerido" });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload & {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
       userId: string;
+      roleId: number;
+      roleName: string;
     };
 
-    req.user = { userId: decoded.userId };
+    req.user = {
+      userId: decoded.userId,
+      roleId: decoded.roleId, // Agregado
+      roleName: decoded.roleName, // Agregado
+    };
 
     next();
   } catch (error) {
-    res.status(403).json({ message: "Token inválido o expirado" });
+    return res.status(403).json({ message: "Token inválido o expirado" });
   }
 };

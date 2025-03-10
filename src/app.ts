@@ -10,6 +10,7 @@ import helmet from "helmet";
 import { initializeRelationships } from "@relationships/relationships"; // Archivo centralizado de relaciones
 import routes from "./routes"; // Rutas principales de la aplicación
 import { errorMiddleware } from "@middleware/error.middleware";
+import seedData from "./scripts/seedData"; // 🔥 Agregamos el Seeder aquí
 
 // 1. Cargar variables de entorno
 dotenv.config();
@@ -27,12 +28,13 @@ app.use("/api", routes); // Montar las rutas principales en "/api"
 app.use(errorMiddleware as express.ErrorRequestHandler);
 
 // 4. Definir si se forzará la sincronización de la DB (solo en desarrollo)
-const forceBb = process.env.SYNC === "si";
+const forceDb = process.env.SYNC === "si"; // 🔥 Corrección: mejor nombre `forceDb`
 
-// 5. Definir la función principal para iniciar el servidor
+// 5. Función principal para iniciar el servidor
 const startServer = async () => {
   try {
-    process.emitWarning = () => {}; //quitar advertencia de version de sql
+    process.emitWarning = () => {}; // 🔥 Evitar advertencias de versiones de SQL Server
+
     // (A) Inicializa las relaciones entre modelos
     initializeRelationships();
 
@@ -42,18 +44,30 @@ const startServer = async () => {
 
     // (C) Sincroniza los modelos con la base de datos
     console.log(
-      `Sincronizando modelos con ${
-        forceBb ? "❌ sincronización forzada" : "✅ sincronización normal"
+      `🔄 Sincronizando modelos con ${
+        forceDb
+          ? "❌ sincronización forzada (BORRADO DE TABLAS)"
+          : "✅ sincronización normal"
       }...`
     );
-    await sequelize.sync({ alter: forceBb }); // Forzar sincronización solo en desarrollo
+    await sequelize.sync({ force: forceDb }); // 🔥 Corrección: `force` en lugar de `alter`
 
-    // (D) Inicia el servidor en el puerto definido en las variables de entorno
+    // (D) Si no se forzó la sincronización, ejecutar el Seeder (para no borrar datos cada vez)
+    if (!forceDb) {
+      console.log("🌱 Ejecutando Seeder para datos iniciales...");
+      await seedData();
+    } else {
+      console.log(
+        "⚠️ No se ejecuta el Seeder porque la sincronización fue forzada."
+      );
+    }
+
+    // (E) Inicia el servidor en el puerto definido en las variables de entorno
     app.listen(process.env.PORT, () => {
       console.log(`✅ Servidor corriendo en el puerto ${process.env.PORT}`);
     });
   } catch (error) {
-    console.error("Error al iniciar el servidor:", error);
+    console.error("❌ Error al iniciar el servidor:", error);
   }
 };
 
