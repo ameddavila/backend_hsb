@@ -47,7 +47,9 @@ try {
         if (file.endsWith(".model.ts") || file.endsWith(".model.js")) {
           const modelPath = path.join(dir, file);
           // Importar el modelo usando require, y obtener la propiedad default
-          const model = require(modelPath).default;
+          //const model = require(modelPath).default;
+
+          const model = (await import(modelPath)).default;
 
           if (model && model.prototype instanceof Model) {
             models.push(model);
