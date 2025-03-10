@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { authMiddleware } from "@middleware/auth.middleware"; // Asegura autenticación
-
+import { authMiddleware } from "@middleware/auth.middleware";
 import { checkPermission } from "@middleware/permission.middleware";
 import {
   getUsers,
@@ -11,11 +10,15 @@ import {
 
 const router = Router();
 
-router.use(authMiddleware); // Aplica autenticación en todas las rutas
-
-router.post("/register", checkPermission(["admin"]), createUser);
-router.get("/", checkPermission(["admin", "user"]), getUsers);
-router.put("/:id", checkPermission(["admin"]), updateUser);
-router.delete("/:id", checkPermission(["admin"]), deleteUser);
+// ✅ Aplica `authMiddleware` solo en rutas que lo necesiten
+router.post(
+  "/register",
+  authMiddleware,
+  checkPermission(["admin"]),
+  createUser
+);
+router.get("/", authMiddleware, checkPermission(["admin", "user"]), getUsers);
+router.put("/:id", authMiddleware, checkPermission(["admin"]), updateUser);
+router.delete("/:id", authMiddleware, checkPermission(["admin"]), deleteUser);
 
 export default router;

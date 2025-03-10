@@ -11,10 +11,11 @@ import UserModel from "@modules/users/models/user.model";
 @Table({ tableName: "RefreshTokens", timestamps: true })
 export default class RefreshTokenModel extends Model {
   @Column({
-    type: DataType.STRING,
+    type: DataType.UUID,
     primaryKey: true,
+    defaultValue: DataType.UUIDV4, // Usa UUID automático
   })
-  token!: string;
+  id!: string;
 
   @ForeignKey(() => UserModel)
   @Column({
@@ -27,6 +28,12 @@ export default class RefreshTokenModel extends Model {
   user!: UserModel;
 
   @Column({
+    type: DataType.STRING(255),
+    allowNull: false,
+  })
+  token!: string;
+
+  @Column({
     type: DataType.DATE,
     allowNull: false,
   })
@@ -36,5 +43,5 @@ export default class RefreshTokenModel extends Model {
     type: DataType.BOOLEAN,
     defaultValue: true,
   })
-  isActive!: boolean; // ✅ Evita que un refreshToken sea reutilizado tras logout
+  isActive!: boolean;
 }

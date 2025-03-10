@@ -1,5 +1,5 @@
 import express from "express";
-import { login, handleRefreshToken } from "../controllers/auth.controller"; // Asegurar que el archivo tiene la función `login`
+import { login, handleRefreshToken } from "../controllers/auth.controller";
 
 const router = express.Router();
 

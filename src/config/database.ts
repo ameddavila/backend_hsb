@@ -7,105 +7,118 @@ dotenv.config();
 
 const isProduction = process.env.NODE_ENV === "production";
 
-let sequelize: Sequelize;
+let sequelize: Sequelize | null = null; // Declaramos como `null` inicialmente
 
-try {
-  console.log("🔧 Iniciando configuración de Sequelize...");
+/**
+ * Función para inicializar la base de datos y registrar modelos dinámicamente.
+ */
+export const initializeDatabase = async (): Promise<Sequelize> => {
+  try {
+    console.log("🔧 Iniciando configuración de Sequelize...");
 
-  // Crear instancia de Sequelize con configuración
-  sequelize = new Sequelize({
-    database: process.env.DB_NAME,
-    username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT as string, 10) || 1433,
-    dialect: "mssql",
-    dialectOptions: {
-      options: {
-        encrypt: isProduction,
-        trustServerCertificate: !isProduction,
-        instanceName: process.env.DB_INSTANCE,
-        timezone: "Z",
+    // Crear instancia de Sequelize
+    sequelize = new Sequelize({
+      database: process.env.DB_NAME,
+      username: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT as string, 10) || 1433,
+      dialect: "mssql",
+      dialectOptions: {
+        options: {
+          encrypt: isProduction,
+          trustServerCertificate: !isProduction,
+          instanceName: process.env.DB_INSTANCE,
+          timezone: "Z",
+        },
       },
-    },
-    logging: false,
-    timezone: "America/La_Paz",
-  });
+      logging: false,
+      timezone: "America/La_Paz",
+    });
 
-  // Función para cargar modelos dinámicamente desde un directorio
-  const loadModels = (
-    sequelize: Sequelize,
-    dir: string
-  ): ModelCtor<Model<any, any>>[] => {
-    const models: ModelCtor<Model<any, any>>[] = [];
+    /**
+     * Función para cargar modelos dinámicamente desde un directorio.
+     * @param dir - Directorio donde se encuentran los modelos
+     * @returns Array de modelos cargados
+     */
+    const loadModels = async (
+      dir: string
+    ): Promise<ModelCtor<Model<any, any>>[]> => {
+      const models: ModelCtor<Model<any, any>>[] = [];
 
-    try {
-      const files = readdirSync(dir);
-      console.log(`🔍 Buscando modelos en: ${dir}`);
-
-      files.forEach((file) => {
-        if (file.endsWith(".model.ts") || file.endsWith(".model.js")) {
-          const modelPath = path.join(dir, file);
-          // Importar el modelo usando require, y obtener la propiedad default
-          //const model = require(modelPath).default;
-
-          const model = (await import(modelPath)).default;
-
-          if (model && model.prototype instanceof Model) {
-            models.push(model);
-            console.log(`📂 Modelo cargado: ${file}`);
-          } else {
-            console.warn(
-              `⚠️ [database.ts] El archivo ${file} no exporta un modelo válido.`
-            );
-          }
+      try {
+        if (!existsSync(dir)) {
+          console.warn(`⚠️ El directorio ${dir} no existe.`);
+          return models;
         }
-      });
-    } catch (err) {
-      console.warn(
-        `⚠️ [database.ts] No se pudo leer el directorio ${dir}:`,
-        err
-      );
-    }
 
-    return models;
-  };
+        const files = readdirSync(dir).filter(
+          (file) => file.endsWith(".model.ts") || file.endsWith(".model.js")
+        );
+        console.log(`🔍 Buscando modelos en: ${dir}`);
 
-  // Directorio de módulos (donde se encuentran los subdirectorios de cada módulo)
-  const modulesDir = path.join(__dirname, "../modules");
-  const moduleFolders = readdirSync(modulesDir);
-  const models: ModelCtor<Model<any, any>>[] = [];
+        // Importar modelos de forma asíncrona
+        const importPromises = files.map(async (file) => {
+          const modelPath = path.join(dir, file);
+          try {
+            const importedModule = await import(modelPath);
+            const model = importedModule.default;
+            if (model && model.prototype instanceof Model) {
+              models.push(model);
+              console.log(`📂 Modelo cargado: ${file}`);
+            } else {
+              console.warn(`⚠️ ${file} no exporta un modelo válido.`);
+            }
+          } catch (error) {
+            console.error(`❌ Error al cargar modelo ${file}:`, error);
+          }
+        });
 
-  // Iterar por cada carpeta de módulo y buscar la subcarpeta 'models'
-  moduleFolders.forEach((folder) => {
-    const modelDir = path.join(modulesDir, folder, "models");
+        await Promise.all(importPromises);
+      } catch (err) {
+        console.warn(`⚠️ Error al leer el directorio ${dir}:`, err);
+      }
 
-    // Verificar si la carpeta 'models' existe y contiene archivos
-    if (existsSync(modelDir)) {
-      if (readdirSync(modelDir).length > 0) {
+      return models;
+    };
+
+    // Directorio base de módulos
+    const modulesDir = path.join(__dirname, "../modules");
+    const moduleFolders = readdirSync(modulesDir);
+    let allModels: ModelCtor<Model<any, any>>[] = [];
+
+    // Cargar modelos de cada módulo
+    for (const folder of moduleFolders) {
+      const modelDir = path.join(modulesDir, folder, "models");
+
+      if (existsSync(modelDir) && readdirSync(modelDir).length > 0) {
         console.log(`📂 Cargando modelos para el módulo: ${folder}`);
-        models.push(...loadModels(sequelize, modelDir));
+        const loadedModels = await loadModels(modelDir);
+        allModels = allModels.concat(loadedModels);
       } else {
         console.warn(
-          `⚠️ El módulo "${folder}" tiene la carpeta 'models' pero está vacía.`
+          `⚠️ El módulo "${folder}" no tiene modelos o la carpeta está vacía.`
         );
       }
-    } else {
-      console.warn(`⚠️ El módulo "${folder}" no tiene la carpeta 'models'.`);
     }
-  });
 
-  // Registrar todos los modelos en la instancia de Sequelize
-  sequelize.addModels(models);
+    // Registrar modelos en Sequelize
+    if (allModels.length > 0) {
+      sequelize.addModels(allModels);
+      console.log(
+        "✅ Modelos registrados en Sequelize:",
+        Object.keys(sequelize.models)
+      );
+    } else {
+      console.warn("⚠️ No se encontraron modelos para registrar en Sequelize.");
+    }
 
-  // Log para confirmar qué modelos se han registrado
-  console.log(
-    "✅ Modelos registrados en Sequelize:",
-    Object.keys(sequelize.models)
-  );
-} catch (error) {
-  console.error("❌ Error al configurar Sequelize:", error);
-  process.exit(1);
-}
+    return sequelize; // Retornar la instancia de Sequelize
+  } catch (error) {
+    console.error("❌ Error al configurar Sequelize:", error);
+    process.exit(1);
+  }
+};
 
-export default sequelize;
+// Exportar la instancia de Sequelize correctamente
+export { sequelize };

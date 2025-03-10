@@ -8,14 +8,14 @@ import { Op } from "sequelize";
 
 // Validación con Joi
 const userSchema = Joi.object({
-  username: Joi.string().min(3).max(50).required(),
-  email: Joi.string().email().required(),
-  password: Joi.string().min(8).required(),
-  firstName: Joi.string().min(2).max(50).required(),
-  lastName: Joi.string().min(2).max(50).required(),
+  username: Joi.string().min(3).max(50).optional(),
+  email: Joi.string().email().optional(),
+  password: Joi.string().min(8).optional(),
+  firstName: Joi.string().min(2).max(50).optional(),
+  lastName: Joi.string().min(2).max(50).optional(),
   phone: Joi.string().min(8).max(20).optional(),
   isActive: Joi.boolean().optional(),
-});
+}).min(1); // Al menos un campo debe ser enviado
 
 // Crear Usuario
 export const createUser = async (
@@ -104,26 +104,21 @@ export const updateUser = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-
-    // Validar los datos de entrada con Joi
-    const { error } = userSchema.validate(req.body, { allowUnknown: true });
+    const { error } = userSchema.validate(req.body);
     if (error) {
       res.status(400).json({ message: error.details[0].message });
-      return; // Detener la ejecución si hay errores de validación
+      return;
     }
 
-    // Buscar al usuario por ID
     const user = await UserModel.findByPk(id);
     if (!user) {
       res.status(404).json({ message: "Usuario no encontrado" });
-      return; // Detener la ejecución si el usuario no existe
+      return;
     }
 
-    // Actualizar el usuario
     await user.update(req.body);
     res.status(200).json({ message: "Usuario actualizado exitosamente", user });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Error al actualizar usuario", error });
   }
 };
