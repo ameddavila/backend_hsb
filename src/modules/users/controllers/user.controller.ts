@@ -3,52 +3,36 @@ import UserModel from "../models/user.model";
 import RoleModel from "@modules/users/models/role.model";
 import UserRoleModel from "@modules/users/models/userRole.model";
 import bcrypt from "bcrypt";
-import Joi from "joi";
 import { Op } from "sequelize";
+import { validateUser } from "@utils/validation";
 
-// Validación con Joi
-const userSchema = Joi.object({
-  username: Joi.string().min(3).max(50).optional(),
-  email: Joi.string().email().optional(),
-  password: Joi.string().min(8).optional(),
-  firstName: Joi.string().min(2).max(50).optional(),
-  lastName: Joi.string().min(2).max(50).optional(),
-  phone: Joi.string().min(8).max(20).optional(),
-  isActive: Joi.boolean().optional(),
-}).min(1); // Al menos un campo debe ser enviado
-
-// Crear Usuario
+// 🚀 **Crear usuario**
 export const createUser = async (
   req: Request,
   res: Response
-): Promise<void> => {
-  //console.log("LLEGAS", req.body);
+): Promise<Response> => {
   try {
-    // Validar datos de entrada con Joi (o Zod si usas otro esquema)
-    const { error } = userSchema.validate(req.body);
+    const { error } = validateUser(req.body);
     if (error) {
-      res.status(400).json({ message: error.details[0].message });
-      return;
+      return res.status(400).json({
+        message: error.details.map((err) => err.message).join(", "),
+      });
     }
 
     const { username, email, password, firstName, lastName, phone } = req.body;
 
-    // Verificar si ya existe usuario o email
+    // Verificar si el usuario ya existe
     const existingUser = await UserModel.findOne({
       where: { [Op.or]: [{ username }, { email }] },
     });
 
     if (existingUser) {
-      res
-        .status(409)
-        .json({ field: "username", message: "Usuario o correo ya en uso." });
-      return;
+      return res.status(409).json({ message: "Usuario ya existe" });
     }
 
-    // Encriptar la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear el usuario en la base de datos
+    // Crear usuario
     const newUser = await UserModel.create({
       username,
       email,
@@ -56,19 +40,16 @@ export const createUser = async (
       firstName,
       lastName,
       phone,
-      isActive: true, // 🔹 Asegurar que el usuario esté activo
+      isActive: true,
     });
 
-    // Asignar el rol "Invitado" automáticamente
+    // Asignar rol "Invitado" automáticamente
     const invitedRole = await RoleModel.findOne({
       where: { name: "Invitado" },
     });
 
     if (!invitedRole) {
-      res
-        .status(400)
-        .json({ message: "El rol Invitado no existe en la base de datos." });
-      return;
+      return res.status(400).json({ message: "El rol Invitado no existe." });
     }
 
     await UserRoleModel.create({
@@ -76,70 +57,88 @@ export const createUser = async (
       roleId: invitedRole.id,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Usuario registrado correctamente.",
       user: newUser,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error al crear usuario.", error });
+    console.error("❌ Error en createUser:", error);
+    return res.status(500).json({ message: "Error interno al crear usuario." });
   }
 };
 
-// Obtener Usuarios
-export const getUsers = async (req: Request, res: Response): Promise<void> => {
+// 🚀 **Obtener todos los usuarios**
+export const getUsers = async (
+  _req: Request,
+  res: Response
+): Promise<Response> => {
   try {
-    const users = await UserModel.findAll();
-    res.status(200).json(users);
+    const users = await UserModel.findAll({
+      attributes: { exclude: ["password"] }, // No devolver la contraseña
+    });
+
+    return res.status(200).json(users);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error al obtener usuarios", error });
+    console.error("❌ Error en getUsers:", error);
+    return res
+      .status(500)
+      .json({ message: "Error interno al obtener usuarios." });
   }
 };
 
-// Actualizar Usuario
+// 🚀 **Actualizar usuario**
 export const updateUser = async (
   req: Request,
   res: Response
-): Promise<void> => {
+): Promise<Response> => {
   try {
     const { id } = req.params;
-    const { error } = userSchema.validate(req.body);
+    const { error } = validateUser(req.body);
+
     if (error) {
-      res.status(400).json({ message: error.details[0].message });
-      return;
+      return res.status(400).json({
+        message: error.details.map((err) => err.message).join(", "),
+      });
     }
 
     const user = await UserModel.findByPk(id);
     if (!user) {
-      res.status(404).json({ message: "Usuario no encontrado" });
-      return;
+      return res.status(404).json({ message: "Usuario no encontrado." });
     }
 
     await user.update(req.body);
-    res.status(200).json({ message: "Usuario actualizado exitosamente", user });
+    return res
+      .status(200)
+      .json({ message: "Usuario actualizado correctamente." });
   } catch (error) {
-    res.status(500).json({ message: "Error al actualizar usuario", error });
+    console.error("❌ Error en updateUser:", error);
+    return res
+      .status(500)
+      .json({ message: "Error interno al actualizar usuario." });
   }
 };
 
-// Eliminar Usuario
+// 🚀 **Eliminar usuario (Desactivación lógica)**
 export const deleteUser = async (
   req: Request,
   res: Response
-): Promise<void> => {
+): Promise<Response> => {
   try {
     const { id } = req.params;
     const user = await UserModel.findByPk(id);
+
     if (!user) {
-      res.status(404).json({ message: "Usuario no encontrado" });
-      return; // Finaliza la ejecución
+      return res.status(404).json({ message: "Usuario no encontrado." });
     }
 
-    await user.update({ isActive: false }); // Desactivación lógica
-    res.status(200).json({ message: "Usuario desactivado exitosamente" });
+    await user.update({ isActive: false }); // Desactivar usuario en lugar de eliminarlo
+    return res
+      .status(200)
+      .json({ message: "Usuario desactivado correctamente." });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error al eliminar usuario", error });
+    console.error("❌ Error en deleteUser:", error);
+    return res
+      .status(500)
+      .json({ message: "Error interno al eliminar usuario." });
   }
 };

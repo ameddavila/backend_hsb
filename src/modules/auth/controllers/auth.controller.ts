@@ -108,6 +108,7 @@ export const handleRefreshToken = async (
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
+      path: "/",
     });
 
     res.cookie("refreshToken", newRefreshToken, {

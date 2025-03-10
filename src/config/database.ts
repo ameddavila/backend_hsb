@@ -14,6 +14,9 @@ let sequelize: Sequelize | null = null; // Declaramos como `null` inicialmente
  */
 export const initializeDatabase = async (): Promise<Sequelize> => {
   try {
+    if (sequelize) {
+      return sequelize;
+    }
     console.log("🔧 Iniciando configuración de Sequelize...");
 
     // Crear instancia de Sequelize
@@ -45,40 +48,27 @@ export const initializeDatabase = async (): Promise<Sequelize> => {
       dir: string
     ): Promise<ModelCtor<Model<any, any>>[]> => {
       const models: ModelCtor<Model<any, any>>[] = [];
+      if (!existsSync(dir)) return models;
 
-      try {
-        if (!existsSync(dir)) {
-          console.warn(`⚠️ El directorio ${dir} no existe.`);
-          return models;
-        }
+      const files = readdirSync(dir).filter(
+        (file) => file.endsWith(".model.ts") || file.endsWith(".model.js")
+      );
+      console.log(`📂 Modelos encontrados en ${dir}: ${files.length}`);
 
-        const files = readdirSync(dir).filter(
-          (file) => file.endsWith(".model.ts") || file.endsWith(".model.js")
-        );
-        console.log(`🔍 Buscando modelos en: ${dir}`);
-
-        // Importar modelos de forma asíncrona
-        const importPromises = files.map(async (file) => {
-          const modelPath = path.join(dir, file);
-          try {
-            const importedModule = await import(modelPath);
-            const model = importedModule.default;
-            if (model && model.prototype instanceof Model) {
-              models.push(model);
-              console.log(`📂 Modelo cargado: ${file}`);
-            } else {
-              console.warn(`⚠️ ${file} no exporta un modelo válido.`);
-            }
-          } catch (error) {
-            console.error(`❌ Error al cargar modelo ${file}:`, error);
+      for (const file of files) {
+        const modelPath = path.join(dir, file);
+        try {
+          const importedModule = await import(modelPath);
+          const model = importedModule.default;
+          if (model && model.prototype instanceof Model) {
+            models.push(model);
+          } else {
+            console.warn(`⚠️ ${file} no exporta un modelo válido.`);
           }
-        });
-
-        await Promise.all(importPromises);
-      } catch (err) {
-        console.warn(`⚠️ Error al leer el directorio ${dir}:`, err);
+        } catch (error) {
+          console.error(`❌ Error al cargar modelo ${file}:`, error);
+        }
       }
-
       return models;
     };
 

@@ -1,35 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import "../types/express"; // 🔥 Importamos la extensión de Request
 
 export const authMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Token requerido" });
-    return;
+) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "No autorizado" });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
-      userId: string;
-      roleId?: number;
-      roleName?: string;
-    };
-
-    req.user = {
-      userId: decoded.userId,
-      roleId: decoded.roleId || 0,
-      roleName: decoded.roleName || "Invitado",
-    };
-
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    req.user = decoded; // Asigna `user` al objeto `req`
     next();
   } catch (error) {
-    res.status(403).json({ message: "Token inválido o expirado" });
+    return res.status(401).json({ message: "Token inválido" });
   }
 };

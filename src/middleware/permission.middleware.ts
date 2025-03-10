@@ -1,21 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 
-/**
- * Middleware para verificar permisos del usuario.
- * @param requiredPermissions - Lista de roles con acceso permitido.
- */
-export const checkPermission = (requiredPermissions: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user || !req.user.roleName) {
-      res.status(403).json({ error: "Acceso denegado" });
-      return;
+export const checkPermission = (roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.roleName || "")) {
+      return res.status(403).json({ message: "No tienes permisos" });
     }
-
-    if (!requiredPermissions.includes(req.user.roleName)) {
-      res.status(403).json({ error: "No tienes permisos para acceder" });
-      return;
-    }
-
     next();
   };
 };
