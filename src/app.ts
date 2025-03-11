@@ -14,6 +14,11 @@ import { initializeDatabase } from "./config/database"; // Importar la función 
 
 dotenv.config();
 
+dotenv.config();
+console.log("📢 Archivo .env cargado. Claves JWT:");
+console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
+console.log("REFRESH_TOKEN_SECRET:", process.env.REFRESH_TOKEN_SECRET);
+
 const app = express();
 
 // 3. Configurar middlewares globales

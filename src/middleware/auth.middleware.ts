@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 
-// Extender `Request` para incluir `user`
 export interface RequestWithUser extends Request {
   user?: {
     userId: string;
@@ -17,34 +16,42 @@ export const authMiddleware = (
 ): void => {
   const authHeader = req.headers.authorization;
 
-  // Verificar si el header de autorización está presente y bien formado
+  console.log("🔍 Encabezado de autorización recibido:", authHeader);
+
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.error("🚨 No se encontró un token válido en el encabezado.");
     res
       .status(401)
       .json({ message: "No autorizado: Falta o formato incorrecto del token" });
     return;
   }
 
-  const token = authHeader.split(" ")[1];
+  const token =
+    req.headers.authorization?.split(" ")[1] || req.cookies.accessToken;
 
-  // Verificar que el token no sea `undefined`
+  console.log("🔍 Token extraído:", token);
+
   if (!token) {
-    res.status(401).json({ message: "No autorizado: Token no encontrado" });
+    console.error("🚨 El token está vacío o es indefinido.");
+    res.status(401).json({ message: "No autorizado: Token inválido o vacío" });
     return;
   }
 
   try {
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || ""
+      process.env.ACCESS_TOKEN_SECRET as string
     ) as JwtPayload & {
       userId: string;
       roleId?: number;
       roleName?: string;
     };
 
+    console.log("✅ Token decodificado:", decoded);
+
     if (!decoded || !decoded.userId) {
-      res.status(401).json({ message: "Token inválido: Falta userId" });
+      console.error("🚨 Token inválido: Falta userId.");
+      res.status(401).json({ message: "Token inválido" });
       return;
     }
 
@@ -54,9 +61,10 @@ export const authMiddleware = (
       roleName: decoded.roleName ?? undefined,
     };
 
+    console.log("✅ Usuario autenticado:", req.user);
     next();
   } catch (error) {
-    console.error("Error en authMiddleware:", error);
+    console.error("🚨 Error al verificar el token:", error);
     res.status(401).json({ message: "Token inválido o expirado" });
   }
 };
