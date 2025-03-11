@@ -1,21 +1,62 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
+
+// Extender `Request` para incluir `user`
+export interface RequestWithUser extends Request {
+  user?: {
+    userId: string;
+    roleId?: number;
+    roleName?: string;
+  };
+}
 
 export const authMiddleware = (
-  req: Request,
+  req: RequestWithUser,
   res: Response,
   next: NextFunction
-) => {
-  const token = req.headers.authorization?.split(" ")[1];
+): void => {
+  const authHeader = req.headers.authorization;
+
+  // Verificar si el header de autorización está presente y bien formado
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    res
+      .status(401)
+      .json({ message: "No autorizado: Falta o formato incorrecto del token" });
+    return;
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  // Verificar que el token no sea `undefined`
   if (!token) {
-    return res.status(401).json({ message: "No autorizado" });
+    res.status(401).json({ message: "No autorizado: Token no encontrado" });
+    return;
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    req.user = decoded; // Asigna `user` al objeto `req`
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || ""
+    ) as JwtPayload & {
+      userId: string;
+      roleId?: number;
+      roleName?: string;
+    };
+
+    if (!decoded || !decoded.userId) {
+      res.status(401).json({ message: "Token inválido: Falta userId" });
+      return;
+    }
+
+    req.user = {
+      userId: decoded.userId,
+      roleId: decoded.roleId ?? undefined,
+      roleName: decoded.roleName ?? undefined,
+    };
+
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Token inválido" });
+    console.error("Error en authMiddleware:", error);
+    res.status(401).json({ message: "Token inválido o expirado" });
   }
 };

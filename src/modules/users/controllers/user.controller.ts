@@ -3,36 +3,47 @@ import UserModel from "../models/user.model";
 import RoleModel from "@modules/users/models/role.model";
 import UserRoleModel from "@modules/users/models/userRole.model";
 import bcrypt from "bcrypt";
+import Joi from "joi";
 import { Op } from "sequelize";
-import { validateUser } from "@utils/validation";
 
-// 🚀 **Crear usuario**
+// Validación con Joi
+const userSchema = Joi.object({
+  username: Joi.string().min(3).max(50).required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).required(),
+  firstName: Joi.string().min(2).max(50).required(),
+  lastName: Joi.string().min(2).max(50).required(),
+  phone: Joi.string().min(8).max(20).optional(),
+});
+
+// Create User
 export const createUser = async (
   req: Request,
   res: Response
-): Promise<Response> => {
+): Promise<void> => {
   try {
-    const { error } = validateUser(req.body);
+    const { error } = userSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({
-        message: error.details.map((err) => err.message).join(", "),
+      res.status(400).json({
+        message:
+          error.details?.[0]?.message || "Error en la validación de datos",
       });
+      return;
     }
 
     const { username, email, password, firstName, lastName, phone } = req.body;
 
-    // Verificar si el usuario ya existe
     const existingUser = await UserModel.findOne({
       where: { [Op.or]: [{ username }, { email }] },
     });
 
     if (existingUser) {
-      return res.status(409).json({ message: "Usuario ya existe" });
+      res.status(409).json({ message: "Usuario ya existe" });
+      return;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear usuario
     const newUser = await UserModel.create({
       username,
       email,
@@ -43,13 +54,15 @@ export const createUser = async (
       isActive: true,
     });
 
-    // Asignar rol "Invitado" automáticamente
     const invitedRole = await RoleModel.findOne({
       where: { name: "Invitado" },
     });
 
     if (!invitedRole) {
-      return res.status(400).json({ message: "El rol Invitado no existe." });
+      res
+        .status(400)
+        .json({ message: "El rol Invitado no existe en la base de datos." });
+      return;
     }
 
     await UserRoleModel.create({
@@ -57,88 +70,74 @@ export const createUser = async (
       roleId: invitedRole.id,
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "Usuario registrado correctamente.",
       user: newUser,
     });
   } catch (error) {
     console.error("❌ Error en createUser:", error);
-    return res.status(500).json({ message: "Error interno al crear usuario." });
+    res.status(500).json({ message: "Error al crear usuario.", error });
   }
 };
 
-// 🚀 **Obtener todos los usuarios**
-export const getUsers = async (
-  _req: Request,
-  res: Response
-): Promise<Response> => {
+// Get Users
+export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = await UserModel.findAll({
-      attributes: { exclude: ["password"] }, // No devolver la contraseña
-    });
-
-    return res.status(200).json(users);
+    const users = await UserModel.findAll();
+    res.status(200).json(users);
   } catch (error) {
-    console.error("❌ Error en getUsers:", error);
-    return res
-      .status(500)
-      .json({ message: "Error interno al obtener usuarios." });
+    console.error(error);
+    res.status(500).json({ message: "Error al obtener usuarios", error });
   }
 };
 
-// 🚀 **Actualizar usuario**
+// Update User
 export const updateUser = async (
   req: Request,
   res: Response
-): Promise<Response> => {
+): Promise<void> => {
   try {
     const { id } = req.params;
-    const { error } = validateUser(req.body);
-
+    const { error } = userSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({
-        message: error.details.map((err) => err.message).join(", "),
-      });
+      res
+        .status(400)
+        .json({
+          message: error.details?.[0]?.message || "Error en la validación",
+        });
+      return;
     }
 
     const user = await UserModel.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado." });
+      res.status(404).json({ message: "Usuario no encontrado" });
+      return;
     }
 
     await user.update(req.body);
-    return res
-      .status(200)
-      .json({ message: "Usuario actualizado correctamente." });
+    res.status(200).json({ message: "Usuario actualizado exitosamente", user });
   } catch (error) {
-    console.error("❌ Error en updateUser:", error);
-    return res
-      .status(500)
-      .json({ message: "Error interno al actualizar usuario." });
+    res.status(500).json({ message: "Error al actualizar usuario", error });
   }
 };
 
-// 🚀 **Eliminar usuario (Desactivación lógica)**
+// Delete User
 export const deleteUser = async (
   req: Request,
   res: Response
-): Promise<Response> => {
+): Promise<void> => {
   try {
     const { id } = req.params;
     const user = await UserModel.findByPk(id);
-
     if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado." });
+      res.status(404).json({ message: "Usuario no encontrado" });
+      return;
     }
 
-    await user.update({ isActive: false }); // Desactivar usuario en lugar de eliminarlo
-    return res
-      .status(200)
-      .json({ message: "Usuario desactivado correctamente." });
+    await user.update({ isActive: false }); // Logical deactivation
+    res.status(200).json({ message: "Usuario desactivado exitosamente" });
   } catch (error) {
-    console.error("❌ Error en deleteUser:", error);
-    return res
-      .status(500)
-      .json({ message: "Error interno al eliminar usuario." });
+    console.error(error);
+    res.status(500).json({ message: "Error al eliminar usuario", error });
   }
 };

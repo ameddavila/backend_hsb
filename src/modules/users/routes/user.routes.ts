@@ -4,18 +4,37 @@ import {
   getUsers,
   updateUser,
   deleteUser,
-} from "../controllers/user.controller";
-import { authMiddleware } from "@middleware/auth.middleware"; // Se usa `{}` ya que no es export default
-import { checkPermission } from "@middleware/permission.middleware"; // Se usa `{}`
+} from "@modules/users/controllers/user.controller";
+import { authMiddleware } from "@middleware/auth.middleware";
+import { checkPermission } from "@middleware/permission.middleware";
 
 const router = Router();
 
-// ✅ Rutas públicas
+// Registrar usuario (Ruta pública)
 router.post("/register", createUser);
 
-// ✅ Rutas protegidas con middleware
-router.get("/", authMiddleware, checkPermission(["admin", "user"]), getUsers);
-router.put("/:id", authMiddleware, checkPermission(["admin"]), updateUser);
-router.delete("/:id", authMiddleware, checkPermission(["admin"]), deleteUser);
+// Obtener usuarios (Protegido con autenticación y permisos)
+router.get(
+  "/",
+  authMiddleware,
+  checkPermission(["Administrador", "Usuario"]), // Corregido
+  getUsers as any
+);
+
+// Actualizar usuario (Solo Administrador)
+router.put(
+  "/:id",
+  authMiddleware,
+  checkPermission(["Administrador"]), // Corregido
+  updateUser as any
+);
+
+// Eliminar usuario (Solo Administrador)
+router.delete(
+  "/:id",
+  authMiddleware,
+  checkPermission(["Administrador"]), // Corregido
+  deleteUser as any
+);
 
 export default router;
