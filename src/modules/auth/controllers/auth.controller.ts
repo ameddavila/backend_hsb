@@ -21,14 +21,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const result = await loginUser(usernameOrEmail, password);
+    // ✅ Pasamos `req` con el tipo correcto
+    const result = await loginUser(usernameOrEmail, password, req);
 
     if (!result.success) {
       res.status(result.status ?? 500).json({ message: result.message });
       return;
     }
 
-    // Guardar tokens en cookies seguras (no se envían en la respuesta JSON)
     res.cookie("accessToken", result.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

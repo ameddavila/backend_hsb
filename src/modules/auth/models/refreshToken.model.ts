@@ -13,13 +13,13 @@ export default class RefreshTokenModel extends Model {
   @Column({
     type: DataType.UUID,
     primaryKey: true,
-    defaultValue: DataType.UUIDV4, // Usa UUID automático
+    defaultValue: DataType.UUIDV4, // Genera UUID automáticamente
   })
   id!: string;
 
   @ForeignKey(() => UserModel)
   @Column({
-    type: DataType.UUID,
+    type: DataType.UUID, // 💡 Asegura que coincida con el tipo en la tabla Users
     allowNull: false,
   })
   userId!: string;
@@ -28,16 +28,29 @@ export default class RefreshTokenModel extends Model {
   user!: UserModel;
 
   @Column({
-    type: DataType.STRING(255),
+    type: DataType.STRING(255), // ✅ Cambiado de NVARCHAR(MAX) a STRING(255)
     allowNull: false,
+    unique: true, // ✅ Ahora es válido
   })
   token!: string;
 
   @Column({
-    type: DataType.DATE,
+    type: DataType.STRING(255), // ✅ Almacena User-Agent o identificador de dispositivo
+    allowNull: false,
+  })
+  deviceId!: string;
+
+  @Column({
+    type: DataType.DATE, // ✅ Define la fecha de expiración
     allowNull: false,
   })
   expiresAt!: Date;
+
+  @Column({
+    type: DataType.DATE, // ✅ Última vez que se usó el token
+    allowNull: true,
+  })
+  lastUsedAt!: Date;
 
   @Column({
     type: DataType.BOOLEAN,

@@ -6,12 +6,14 @@ import cookieParser from "cookie-parser";
 import xssClean from "xss-clean";
 import cors from "cors";
 import helmet from "helmet";
+import { cleanExpiredTokens } from "./scripts/cleanExpiredTokens";
 import { initializeRelationships } from "@relationships/relationships"; // Archivo centralizado de relaciones
 import routes from "./routes"; // Rutas principales de la aplicación
 import { errorMiddleware } from "@middleware/error.middleware";
 import seedData from "./scripts/seedData"; // 🔥 Agregamos el Seeder aquí
 import { initializeDatabase } from "./config/database"; // Importar la función de inicialización
 
+setInterval(cleanExpiredTokens, 24 * 60 * 60 * 1000); // Ejecutar cada 24h
 dotenv.config();
 
 dotenv.config();
