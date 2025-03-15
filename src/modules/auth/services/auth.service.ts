@@ -1,20 +1,20 @@
 import { Request } from "express";
-import { generateAccessToken, generateRefreshToken } from "./jwt.service";
-import { generateCsrfToken } from "./csrf.service";
 import bcrypt from "bcrypt";
 import { Op } from "sequelize";
 import UserModel from "@modules/users/models/user.model";
 import RoleModel from "@modules/users/models/role.model";
+import { generateAccessToken, generateRefreshToken } from "./jwt.service";
+import { generateCsrfToken } from "./csrf.service";
 import RefreshTokenModel from "../models/refreshToken.model";
+import { LoginResult, LoginSuccess, LoginFailure } from "../types/auth.types";
 
 export const loginUser = async (
   usernameOrEmail: string,
   password: string,
-  req: Request // ✅ Agregamos el tercer parámetro
-) => {
+  req: Request
+): Promise<LoginResult> => {
   try {
-    console.log("🔍 Buscando usuario:", usernameOrEmail);
-
+    // 1. Buscar usuario
     const user = await UserModel.findOne({
       where: {
         [Op.or]: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
@@ -23,76 +23,73 @@ export const loginUser = async (
     });
 
     if (!user) {
-      console.error("🚨 Usuario no encontrado.");
-      return { success: false, status: 404, message: "Usuario no encontrado" };
+      const fail: LoginFailure = {
+        success: false,
+        status: 404,
+        message: "Usuario no encontrado",
+      };
+      return fail;
     }
 
-    console.log("✅ Usuario encontrado:", user.username);
-
+    // 2. Verificar contraseña
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      console.error("🚨 Contraseña incorrecta.");
-      return { success: false, status: 401, message: "Contraseña incorrecta" };
+      const fail: LoginFailure = {
+        success: false,
+        status: 401,
+        message: "Contraseña incorrecta",
+      };
+      return fail;
     }
 
-    console.log("✅ Contraseña correcta.");
-
+    // 3. Verificar si está activo
     if (!user.isActive) {
-      console.error("🚨 Usuario inactivo.");
-      return { success: false, status: 403, message: "Usuario inactivo" };
+      const fail: LoginFailure = {
+        success: false,
+        status: 403,
+        message: "Usuario inactivo",
+      };
+      return fail;
     }
 
+    // 4. Verificar roles
     const userRole = user.roles?.[0];
     if (!userRole) {
-      console.error("🚨 Usuario sin rol asignado.");
-      return {
+      const fail: LoginFailure = {
         success: false,
         status: 403,
         message: "El usuario no tiene roles asignados",
       };
+      return fail;
     }
 
-    console.log("✅ Usuario con rol:", userRole.name);
-
-    // ✅ Generar tokens
+    // 5. Generar tokens
     const accessToken = generateAccessToken({
       userId: user.id,
       roleId: userRole.id,
       roleName: userRole.name,
     });
-
     const refreshToken = generateRefreshToken({ userId: user.id });
-
-    console.log("✅ Tokens generados correctamente.");
-
-    // ✅ Guardar `refreshToken` en la base de datos
-    try {
-      await RefreshTokenModel.create({
-        userId: user.id,
-        token: refreshToken,
-        deviceId: "Thunder Client", // Asegúrate de enviar deviceId correctamente
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        isActive: true,
-      });
-      console.log("✅ Refresh Token guardado correctamente en la BD.");
-    } catch (dbError) {
-      console.error("❌ Error al guardar el Refresh Token en la BD:", dbError);
-      return {
-        success: false,
-        status: 500,
-        message: "Error al guardar el token en la base de datos",
-      };
-    }
-
     const csrfToken = generateCsrfToken(user.id);
 
-    return { success: true, accessToken, refreshToken, csrfToken };
+    // 6. Retornar objeto de ÉXITO
+    const success: LoginSuccess = {
+      success: true,
+      userId: user.id,
+      accessToken,
+      refreshToken,
+      csrfToken,
+    };
+    return success;
   } catch (error) {
-    console.error("❌ Error en el inicio de sesión:", error);
-    return {
+    console.error("❌ Error en loginUser:", error);
+
+    // O puedes retornar un error genérico
+    const fail: LoginFailure = {
       success: false,
       status: 500,
-      message: "Error en el inicio de sesión",
+      message: "Error interno en loginUser",
     };
+    return fail;
   }
 };

@@ -15,20 +15,33 @@ import { generateCsrfToken } from "../services/csrf.service";
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { usernameOrEmail, password } = req.body;
+    const { usernameOrEmail, password, deviceId } = req.body;
+
     if (!usernameOrEmail || !password) {
       res.status(400).json({ message: "Usuario y contraseña requeridos." });
       return;
     }
 
-    // ✅ Pasamos `req` con el tipo correcto
     const result = await loginUser(usernameOrEmail, password, req);
 
+    // Caso de fallo
     if (!result.success) {
-      res.status(result.status ?? 500).json({ message: result.message });
+      res.status(result.status).json({ message: result.message });
       return;
     }
+    // Aquí TypeScript sabe que result es un "LoginSuccess"
+    // => result.userId, result.accessToken, etc. existen
 
+    // Guardamos el Refresh Token en BD con deviceId
+    await RefreshTokenModel.create({
+      userId: result.userId,
+      token: result.refreshToken,
+      deviceId: deviceId || "Unknown",
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      isActive: true,
+    });
+
+    // Configurar cookies
     res.cookie("accessToken", result.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -41,7 +54,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       sameSite: "strict",
     });
 
-    res.status(200).json({ csrfToken: result.csrfToken });
+    // CSRF token en cookie no-httpOnly
+    res.cookie("csrfToken", result.csrfToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    res.status(200).json({
+      message: "Login exitoso",
+      csrfToken: result.csrfToken,
+    });
   } catch (error) {
     console.error("❌ Error en login:", error);
     res.status(500).json({ error: "Error interno del servidor" });
@@ -63,47 +86,46 @@ export const handleRefreshToken = async (
       return;
     }
 
-    // Verificar y decodificar el `refreshToken`
+    // Verificar/decodificar el `refreshToken`
     const decoded = verifyRefreshToken(refreshToken);
-
     if (!decoded || typeof decoded === "string" || !("userId" in decoded)) {
       res.status(403).json({ error: "Token de refresco inválido o expirado." });
       return;
     }
 
-    const userId = (decoded as JwtPayload).userId;
+    const userId = decoded.userId as string;
 
-    // Buscar si el `refreshToken` está activo en la base de datos
-    const tokenRecord = await RefreshTokenModel.findOne({
+    // Verificar si el refreshToken está activo en BD
+    const oldToken = await RefreshTokenModel.findOne({
       where: { token: refreshToken, isActive: true },
     });
-
-    if (!tokenRecord) {
+    if (!oldToken) {
       res
         .status(403)
         .json({ error: "Token de refresco no encontrado o inactivo." });
       return;
     }
 
-    // **Revocar el token anterior**
-    await RefreshTokenModel.update(
-      { isActive: false },
-      { where: { token: refreshToken } }
-    );
+    // Tomamos el deviceId registrado en ese token
+    const deviceId = oldToken.deviceId;
 
-    // **Generar nuevos tokens**
+    // Revocamos el token anterior
+    await oldToken.update({ isActive: false });
+
+    // Generar nuevos tokens
     const newRefreshToken = generateRefreshToken({ userId });
     const newAccessToken = generateAccessToken({ userId });
 
-    // **Guardar el nuevo `refreshToken` en la base de datos**
+    // Guardar el nuevo refresh token en la BD, con el mismo deviceId
     await RefreshTokenModel.create({
       userId,
       token: newRefreshToken,
+      deviceId, // Utilizamos el mismo deviceId
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días
       isActive: true,
     });
 
-    // **Actualizar cookies con los nuevos tokens**
+    // Actualizar cookies (httpOnly) con los nuevos tokens
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -117,9 +139,18 @@ export const handleRefreshToken = async (
       sameSite: "strict",
     });
 
-    // **Generar y devolver un nuevo `csrfToken`**
+    // Generar y enviar nuevo CSRF token
     const csrfToken = generateCsrfToken(userId);
-    res.status(200).json({ csrfToken });
+    res.cookie("csrfToken", csrfToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    res.status(200).json({
+      message: "Tokens refrescados correctamente",
+      csrfToken,
+    });
   } catch (error) {
     console.error("❌ Error en refreshToken:", error);
     res.status(403).json({ message: "Token inválido o expirado." });
@@ -134,25 +165,20 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
-      res
-        .status(400)
-        .json({ message: "No hay token de refresco para eliminar." });
+      res.status(400).json({ message: "No hay token de refresco para eliminar." });
       return;
     }
 
-    // **Revocar el `refreshToken` en la base de datos**
+    // Revocar el refreshToken en la BD
     const tokenRecord = await RefreshTokenModel.findOne({
       where: { token: refreshToken },
     });
 
     if (tokenRecord) {
-      await RefreshTokenModel.update(
-        { isActive: false },
-        { where: { token: refreshToken } }
-      );
+      await tokenRecord.update({ isActive: false });
     }
 
-    // **Eliminar cookies en el cliente**
+    // Limpiar cookies en el cliente
     res.clearCookie("accessToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
