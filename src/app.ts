@@ -13,7 +13,8 @@ import { errorMiddleware } from "@middleware/error.middleware";
 import seedData from "./scripts/seedData"; // 🔥 Agregamos el Seeder aquí
 import { initializeDatabase } from "./config/database"; // Importar la función de inicialización
 
-setInterval(cleanExpiredTokens, 24 * 60 * 60 * 1000); // Ejecutar cada 24h
+// Ejecutar limpieza cada 30 minutos
+setInterval(cleanExpiredTokens, 30 * 60 * 1000);
 dotenv.config();
 
 dotenv.config();
