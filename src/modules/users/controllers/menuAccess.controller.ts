@@ -1,92 +1,108 @@
-// src/modules/users/controllers/menuAccess.controller.ts
-
-import { Request, Response } from "express";
+import { Response } from "express";
+import { RequestWithUser } from "@middleware/auth.middleware";
 import UserModel from "@modules/users/models/user.model";
 import RoleModel from "@modules/users/models/role.model";
 import MenuModel from "@modules/users/models/menu.model";
 
-interface MenuNode extends MenuModel {
-  children?: MenuNode[];
+interface MenuNode {
+  id: number;
+  name: string;
+  path: string;
+  parentId: number | null;
+  icon?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+  children: MenuNode[];
 }
 
-/**
- * buildMenuTree
- * - Reconstruye la jerarquía padre-hijo.
- */
-function buildMenuTree(menus: MenuModel[]): MenuNode[] {
-  // Diccionario para mapear id -> objeto con children vacíos
+function buildMenuTree(menus: MenuNode[]): MenuNode[] {
   const map: Record<number, MenuNode> = {};
-
-  // 1. Inicializar cada menú en el diccionario
-  menus.forEach((menu) => {
-    const plainMenu = menu.toJSON ? menu.toJSON() : menu;
-    map[plainMenu.id] = { ...plainMenu, children: [] };
-  });
-
-  // 2. Armar la estructura
   const roots: MenuNode[] = [];
 
-  menus.forEach((menu) => {
-    const plainMenu = menu.toJSON ? menu.toJSON() : menu;
-    const currentNode = map[plainMenu.id];
-    if (!currentNode) {
-      // Si no existe, salimos
-      return;
-    }
+  menus.forEach((m) => {
+    map[m.id] = { ...m, children: [] };
+  });
 
-    if (plainMenu.parentId == null) {
-      // Es raíz
-      roots.push(currentNode);
-    } else {
-      // Tiene padre, lo metemos en children del padre
-      const parentNode = map[plainMenu.parentId];
-      if (parentNode) {
-        parentNode.children!.push(currentNode);
+  menus.forEach((m) => {
+    const currentNode = map[m.id];
+    // Verificamos si existe para evitar 'undefined'
+    if (m.parentId === null) {
+      if (currentNode) {
+        roots.push(currentNode);
       }
-      // Si no existe parentNode, simplemente se ignora
+    } else {
+      const parentNode = map[m.parentId];
+      if (parentNode && currentNode) {
+        parentNode.children.push(currentNode);
+      }
     }
   });
 
   return roots;
 }
 
-/**
- * getUserMenus
- */
-export const getUserMenus = async (req: Request, res: Response) => {
+export const getUserMenus = async (
+  req: RequestWithUser,
+  res: Response
+): Promise<void> => {
   try {
+    // 1. Verificar autenticación
     if (!req.user?.userId) {
-      return res.status(401).json({ error: "Usuario no autenticado" });
+      res.status(401).json({ error: "Usuario no autenticado" });
+      return; // 👈 Sin devolver `Response`, cierra la función
     }
 
-    // 1. Buscar usuario y sus roles
+    // 2. Buscar usuario
     const user = await UserModel.findByPk(req.user.userId, {
       include: [RoleModel],
     });
     if (!user) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
+      res.status(404).json({ error: "Usuario no encontrado" });
+      return;
     }
 
+    // 3. Combinar menús de cada rol
     let allMenus: MenuModel[] = [];
     for (const role of user.roles || []) {
-      // Ahora TS sabe que role.getMenus() sí existe
       const roleMenus = await role.getMenus();
       allMenus.push(...roleMenus);
     }
 
-    // 2. Eliminar duplicados
+    // 4. Eliminar duplicados
     const uniqueMap: Record<number, MenuModel> = {};
-    allMenus.forEach((m) => {
-      uniqueMap[m.id] = m;
-    });
+    for (const menu of allMenus) {
+      uniqueMap[menu.id] = menu;
+    }
     const uniqueMenus = Object.values(uniqueMap);
 
-    // 3. Crear la jerarquía
-    const tree = buildMenuTree(uniqueMenus);
+    // 5. Convertir a MenuNode
+    const plainMenus: MenuNode[] = uniqueMenus.map((menu) => {
+      const m = menu.toJSON ? menu.toJSON() : menu;
+      return {
+        id: m.id,
+        name: m.name,
+        path: m.path,
+        parentId: m.parentId ?? null,
+        icon: m.icon,
+        isActive: m.isActive,
+        sortOrder: m.sortOrder,
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt,
+        children: [],
+      };
+    });
 
-    return res.json(tree);
+    // 6. Construir árbol
+    const tree = buildMenuTree(plainMenus);
+
+    // 7. Devolver resultado
+    res.json(tree);
+    return; // 👈 Evita devolver "Response", cierra la función
   } catch (error) {
     console.error("Error en getUserMenus:", error);
-    return res.status(500).json({ error: "Error interno al obtener menús" });
+    res.status(500).json({ error: "Error interno al obtener menús" });
+    return;
   }
 };

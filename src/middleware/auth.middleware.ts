@@ -1,6 +1,11 @@
+// src/middleware/auth.middleware.ts
+
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 
+/**
+ * Interfaz local: Extiende `express.Request` con la propiedad `user`
+ */
 export interface RequestWithUser extends Request {
   user?: {
     userId: string;
@@ -9,32 +14,31 @@ export interface RequestWithUser extends Request {
   };
 }
 
+/**
+ * Middleware de autenticación
+ * - Extrae el token JWT (desde header o cookie)
+ * - Verifica y decodifica
+ * - Asigna `req.user`
+ */
 export const authMiddleware = (
-  req: RequestWithUser,
+  req: RequestWithUser, // <= Usamos la interfaz local en la firma
   res: Response,
   next: NextFunction
 ): void => {
   const authHeader = req.headers.authorization;
 
-  console.log("🔍 Encabezado de autorización recibido:", authHeader);
-
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    console.error("🚨 No se encontró un token válido en el encabezado.");
-    res
-      .status(401)
-      .json({ message: "No autorizado: Falta o formato incorrecto del token" });
+    res.status(401).json({
+      message: "No autorizado: Falta o formato incorrecto del token",
+    });
     return;
   }
 
-  const token =
-    req.headers.authorization?.split(" ")[1] || req.cookies.accessToken;
-
-  console.log("🔍 Token extraído:", token);
+  const token = authHeader.split(" ")[1]; // O req.cookies.accessToken, etc.
 
   if (!token) {
-    console.error("🚨 El token está vacío o es indefinido.");
-    res.status(401).json({ message: "No autorizado: Token inválido o vacío" });
-    return;
+    res.status(401).json({ message: "Token inválido o vacío" });
+    return ;
   }
 
   try {
@@ -47,24 +51,21 @@ export const authMiddleware = (
       roleName?: string;
     };
 
-    console.log("✅ Token decodificado:", decoded);
-
-    if (!decoded || !decoded.userId) {
-      console.error("🚨 Token inválido: Falta userId.");
-      res.status(401).json({ message: "Token inválido" });
-      return;
+    if (!decoded.userId) {
+      res.status(401).json({ message: "Token inválido: Falta userId" });
+      return ;
     }
 
+    // Asignamos la info al `req.user`
     req.user = {
       userId: decoded.userId,
-      roleId: decoded.roleId ?? undefined,
-      roleName: decoded.roleName ?? undefined,
+      roleId: decoded.roleId,
+      roleName: decoded.roleName,
     };
 
-    console.log("✅ Usuario autenticado:", req.user);
     next();
   } catch (error) {
-    console.error("🚨 Error al verificar el token:", error);
     res.status(401).json({ message: "Token inválido o expirado" });
+    return;
   }
 };
