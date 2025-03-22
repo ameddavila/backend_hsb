@@ -8,8 +8,17 @@ import {
 } from "@modules/users/controllers/menu.controller";
 import { authMiddleware } from "@middleware/auth.middleware";
 import { checkPermission } from "@middleware/permission.middleware";
+import { getUserMenus } from "@modules/users/controllers/menuAccess.controller";
 
 const router = Router();
+
+/**
+ * GET /menus/my-menus
+ * - Retorna los menús específicos del usuario autenticado.
+ * - Requiere estar autenticado y (opcional) verificar CSRF.
+ */
+router.get("/my-menus", authMiddleware, verifyCsrfToken, getUserMenus);
+
 
 /**
  * GET /menus

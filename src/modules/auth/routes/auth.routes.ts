@@ -3,7 +3,7 @@ import { login, handleRefreshToken } from "../controllers/auth.controller";
 
 // Importamos nuestros nuevos middlewares
 import { verifyRefreshTokenMiddleware } from "../middleware/verifyRefreshToken.middleware";
-import { verifyCsrfToken } from "../middleware/csrf.middleware";
+import { verifyCsrfToken } from "@modules/auth/middleware/csrf.middleware";
 
 const router = express.Router();
 
