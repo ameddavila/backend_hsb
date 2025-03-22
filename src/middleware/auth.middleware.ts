@@ -16,32 +16,38 @@ export interface RequestWithUser extends Request {
 
 /**
  * Middleware de autenticación
- * - Extrae el token JWT (desde header o cookie)
+ * - Extrae el token JWT (desde el header "Authorization: Bearer ..." o desde la cookie "accessToken")
  * - Verifica y decodifica
  * - Asigna `req.user`
  */
 export const authMiddleware = (
-  req: RequestWithUser, // <= Usamos la interfaz local en la firma
+  req: RequestWithUser,
   res: Response,
   next: NextFunction
 ): void => {
+
+  let token: string | undefined;
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  // 1. Revisar si tenemos un header "Authorization" que empiece con "Bearer "
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    // Tomamos el token tras "Bearer "
+    token = authHeader.split(" ")[1];
+  } else {
+    // 2. Si no, usamos la cookie "accessToken"
+    token = req.cookies?.accessToken;
+  }
+
+  // 3. Si al final no hay token ni en header ni en cookie, error
+  if (!token) {
     res.status(401).json({
       message: "No autorizado: Falta o formato incorrecto del token",
     });
     return;
   }
 
-  const token = authHeader.split(" ")[1]; // O req.cookies.accessToken, etc.
-
-  if (!token) {
-    res.status(401).json({ message: "Token inválido o vacío" });
-    return ;
-  }
-
   try {
+    // 4. Verificamos con JWT
     const decoded = jwt.verify(
       token,
       process.env.ACCESS_TOKEN_SECRET as string
@@ -51,12 +57,13 @@ export const authMiddleware = (
       roleName?: string;
     };
 
-    if (!decoded.userId) {
+    // 5. Chequeamos si hay userId en el payload
+    if (!decoded?.userId) {
       res.status(401).json({ message: "Token inválido: Falta userId" });
-      return ;
+      return;
     }
 
-    // Asignamos la info al `req.user`
+    // 6. Asignamos a req.user
     req.user = {
       userId: decoded.userId,
       roleId: decoded.roleId,
@@ -65,7 +72,7 @@ export const authMiddleware = (
 
     next();
   } catch (error) {
+    console.error("❌ Error al verificar token:", error);
     res.status(401).json({ message: "Token inválido o expirado" });
-    return;
   }
 };
