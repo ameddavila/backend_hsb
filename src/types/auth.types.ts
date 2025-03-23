@@ -1,9 +1,9 @@
 export interface LoginSuccess {
   success: true;
   userId: string;
-  username: string;       // ✅ añadido
-  email: string;          // ✅ añadido
-  userRole: string;       // ✅ añadido
+  username: string;     // ✅ Añadir esta propiedad
+  email: string;        // ✅ Añadir esta propiedad
+  userRole: string;     // ✅ Añadir esta propiedad
   accessToken: string;
   refreshToken: string;
   csrfToken: string;

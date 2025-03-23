@@ -1,5 +1,5 @@
-import "module-alias/register"; // Habilita los alias definidos en tsconfig
-import "reflect-metadata"; // Soporte para decoradores (usado por sequelize-typescript)
+import "module-alias/register";
+import "reflect-metadata";
 import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -7,47 +7,69 @@ import xssClean from "xss-clean";
 import cors from "cors";
 import helmet from "helmet";
 import { cleanExpiredTokens } from "./scripts/cleanExpiredTokens";
-import { initializeRelationships } from "@relationships/relationships"; // Archivo centralizado de relaciones
-import routes from "./routes"; // Rutas principales de la aplicación
+import { initializeRelationships } from "@relationships/relationships";
+import routes from "./routes";
 import { errorMiddleware } from "@middleware/error.middleware";
-import seedData from "./scripts/seedData"; // 🔥 Agregamos el Seeder aquí
-import { initializeDatabase } from "./config/database"; // Importar la función de inicialización
+import seedData from "./scripts/seedData";
+import { initializeDatabase } from "./config/database";
 
-// Ejecutar limpieza cada 30 minutos
-setInterval(cleanExpiredTokens, 30 * 60 * 1000);
+// 🧪 Cargar variables de entorno
 dotenv.config();
+console.log("📢 Archivo .env cargado:");
+console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
 
-dotenv.config();
-console.log("📢 Archivo .env cargado. Claves JWT:");
-console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
-console.log("REFRESH_TOKEN_SECRET:", process.env.REFRESH_TOKEN_SECRET);
+// 🧪 Lista blanca de orígenes permitidos
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:3000", // por si el .env está mal escrito
+  "http://localhost:3001",
+];
 
+// 🚀 Inicializa Express
 const app = express();
 
-// 3. Configurar middlewares globales
-app.use(express.json());
-app.use(cookieParser());
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+// 🔒 Seguridad
 app.use(helmet());
 app.use(xssClean());
+app.use(cookieParser());
+app.use(express.json());
+
+// 🌐 CORS correctamente configurado
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn("⛔️ CORS bloqueado para:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+// ✅ Rutas de la API
 app.use("/api", routes);
+
+// 🧼 Middleware de errores
 app.use(errorMiddleware as express.ErrorRequestHandler);
+
+// ⏰ Ejecutar limpieza cada 30 min
+setInterval(cleanExpiredTokens, 30 * 60 * 1000);
 
 const forceDb = process.env.SYNC === "si";
 
+// 🚀 Inicialización del servidor
 const startServer = async () => {
   try {
-    process.emitWarning = () => {}; // 🔥 Evitar advertencias de versiones de SQL Server
+    process.emitWarning = () => {}; // Silenciar advertencias
 
-    // (A) Inicializar base de datos y obtener instancia de sequelize
-    const sequelize = await initializeDatabase(); // Asegurar inicialización
+    const sequelize = await initializeDatabase();
     initializeRelationships();
-
-    // (B) Autenticar conexión
     await sequelize.authenticate();
-    console.log("✅ Conexión a la base de datos configurada correctamente.");
 
-    // (C) Sincronizar modelos
+    console.log("✅ Conexión a la base de datos configurada correctamente.");
     console.log(
       `🔄 Sincronizando modelos con ${
         forceDb
@@ -61,9 +83,7 @@ const startServer = async () => {
       console.log("🌱 Ejecutando Seeder para datos iniciales...");
       await seedData();
     } else {
-      console.log(
-        "⚠️ No se ejecuta el Seeder porque la sincronización fue forzada."
-      );
+      console.log("⚠️ No se ejecuta el Seeder porque la sincronización fue forzada.");
     }
 
     app.listen(process.env.PORT, () => {

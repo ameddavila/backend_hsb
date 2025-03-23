@@ -60,9 +60,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
 
     res.status(200).json({
-      message: "Login exitoso",
+      id: result.userId,
+      username: result.username,
+      email: result.email,
+      role: result.userRole || "user",
       csrfToken: result.csrfToken,
     });
+    
   } catch (error) {
     console.error("❌ Error en login:", error);
     res.status(500).json({ error: "Error interno del servidor" });
