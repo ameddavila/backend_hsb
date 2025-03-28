@@ -25,7 +25,7 @@ const router = Router();
 router.get(
   "/my-menus",
   authMiddleware,
-  verifyCsrfToken, // Si no deseas CSRF en GET, retira esta línea.
+  //verifyCsrfToken, // Si no deseas CSRF en GET, retira esta línea.
   getUserMenus
 );
 

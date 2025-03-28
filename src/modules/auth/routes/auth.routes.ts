@@ -4,9 +4,22 @@ import { login, handleRefreshToken } from "../controllers/auth.controller";
 // Importamos nuestros nuevos middlewares
 import { verifyRefreshTokenMiddleware } from "../middleware/verifyRefreshToken.middleware";
 import { verifyCsrfToken } from "@modules/auth/middleware/csrf.middleware";
+import { getCsrfTokenPublic } from "../controllers/csrf.controller";
 
 const router = express.Router();
 
+// ✅ Endpoint público para obtener CSRF
+router.get("/csrf-token", getCsrfTokenPublic);
+
+router.get("/test-cookie", (req, res) => {
+    res.cookie("prueba", "valor", {
+      httpOnly: false,
+      sameSite: "lax",
+      path: "/",
+    });
+    res.send("🍪 Cookie enviada");
+  });
+  
 /**
  * Login:
  * - No requiere CSRF porque el usuario todavía no tiene la cookie "csrfToken".

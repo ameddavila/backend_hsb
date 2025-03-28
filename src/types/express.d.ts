@@ -1,9 +1,12 @@
-import { Request } from "express";
+// src/types/express.d.ts
+import "express";
 
-export interface RequestWithUser extends Request {
-  user?: {
-    userId: string;
-    roleId?: number;
-    roleName?: string;
-  };
+declare module "express" {
+  export interface Request {
+    user?: {
+      userId: string;
+      roleId?: number;
+      roleName?: string;
+    };
+  }
 }

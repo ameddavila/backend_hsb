@@ -22,7 +22,7 @@ console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "http://localhost:3000", // por si el .env está mal escrito
-  "http://localhost:3001",
+  undefined,
 ];
 
 // 🚀 Inicializa Express
@@ -38,6 +38,8 @@ app.use(express.json());
 app.use(
   cors({
     origin: function (origin, callback) {
+      console.log("🌐 Solicitud desde:", origin); // 👀 DEBUG
+    
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -56,7 +58,7 @@ app.use("/api", routes);
 app.use(errorMiddleware as express.ErrorRequestHandler);
 
 // ⏰ Ejecutar limpieza cada 30 min
-setInterval(cleanExpiredTokens, 30 * 60 * 1000);
+//setInterval(cleanExpiredTokens, 30 * 60 * 1000);
 
 const forceDb = process.env.SYNC === "si";
 

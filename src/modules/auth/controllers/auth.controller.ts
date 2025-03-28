@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import RefreshTokenModel from "../models/refreshToken.model";
+import UserModel from "@modules/users/models/user.model"; // Asegúrate de importar tu modelo de usuario
+import RoleModel from "@modules/users/models/role.model";
 import { loginUser } from "../services/auth.service";
 import {
   generateAccessToken,
@@ -28,7 +30,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Guardar refresh token en BD
     await RefreshTokenModel.create({
       userId: result.userId,
       token: result.refreshToken,
@@ -37,7 +38,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       isActive: true,
     });
 
-    // Enviar cookies
+    const csrfToken = generateCsrfToken(result.userId);
+
     res.cookie("accessToken", result.accessToken, {
       httpOnly: true,
       secure: isProduction,
@@ -52,21 +54,30 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       path: "/",
     });
 
-    res.cookie("csrfToken", result.csrfToken, {
+    res.cookie("csrfToken", csrfToken, {
       httpOnly: false,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       path: "/",
     });
 
+    console.log("🔐 [LOGIN] Cookies enviadas");
+    console.log("🧑 Usuario:", {
+      id: result.userId,
+      username: result.username,
+      email: result.email,
+      role: result.userRole,
+    });
+    console.log("🔑 CSRF Token:", csrfToken);
+
     res.status(200).json({
       id: result.userId,
       username: result.username,
       email: result.email,
       role: result.userRole || "user",
-      csrfToken: result.csrfToken,
+      csrfToken,
     });
-    
+
   } catch (error) {
     console.error("❌ Error en login:", error);
     res.status(500).json({ error: "Error interno del servidor" });
@@ -83,12 +94,14 @@ export const handleRefreshToken = async (
   try {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
+      console.warn("⛔ No se proporcionó refreshToken");
       res.status(403).json({ error: "Token de refresco no proporcionado." });
       return;
     }
 
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded || typeof decoded === "string" || !("userId" in decoded)) {
+      console.warn("⛔ RefreshToken inválido o expirado");
       res.status(403).json({ error: "Token de refresco inválido o expirado." });
       return;
     }
@@ -99,15 +112,36 @@ export const handleRefreshToken = async (
       where: { token: refreshToken, isActive: true },
     });
     if (!oldToken) {
+      console.warn("⛔ RefreshToken no válido en BD");
       res.status(403).json({ error: "Token de refresco no válido." });
       return;
     }
+
+    
+    const user = await UserModel.findByPk(userId, {
+      include: [
+        {
+          model: RoleModel,
+          as: "roles",
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+
+    if (!user) {
+      console.warn("⛔ Usuario no encontrado con ID:", userId);
+      res.status(404).json({ error: "Usuario no encontrado." });
+      return;
+    }
+    const userRole = user.roles?.[0]?.name || "user";
 
     const deviceId = oldToken.deviceId;
     await oldToken.update({ isActive: false });
 
     const newRefreshToken = generateRefreshToken({ userId });
     const newAccessToken = generateAccessToken({ userId });
+    const csrfToken = generateCsrfToken(userId);
 
     await RefreshTokenModel.create({
       userId,
@@ -131,7 +165,6 @@ export const handleRefreshToken = async (
       path: "/",
     });
 
-    const csrfToken = generateCsrfToken(userId);
     res.cookie("csrfToken", csrfToken, {
       httpOnly: false,
       secure: isProduction,
@@ -139,8 +172,20 @@ export const handleRefreshToken = async (
       path: "/",
     });
 
+    console.log("🔄 [REFRESH] Tokens actualizados y cookies reenviadas");
+    console.log("🧑 Usuario:", {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: userRole,
+    });
+    console.log("🔑 CSRF Token:", csrfToken);
+
     res.status(200).json({
-      message: "Tokens refrescados correctamente",
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: userRole || "user",
       csrfToken,
     });
   } catch (error) {
@@ -188,6 +233,8 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
       sameSite: isProduction ? "strict" : "lax",
       path: "/",
     });
+
+    console.log("🚪 Logout exitoso. Cookies eliminadas.");
 
     res.status(200).json({ message: "Sesión cerrada correctamente." });
   } catch (error) {

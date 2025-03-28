@@ -32,6 +32,6 @@
     "strictFunctionTypes": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src/**/*.ts", "src/types/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/types/**/*"],
   "exclude": ["node_modules", "dist", "coverage", "logs"]
 }
