@@ -6,6 +6,9 @@ import cookieParser from "cookie-parser";
 import xssClean from "xss-clean";
 import cors from "cors";
 import helmet from "helmet";
+import fs from "fs";
+import path from "path";
+import https from "https";
 import { cleanExpiredTokens } from "./scripts/cleanExpiredTokens";
 import { initializeRelationships } from "@relationships/relationships";
 import routes from "./routes";
@@ -22,6 +25,7 @@ console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "http://localhost:3000", // por si el .env está mal escrito
+  "https://localhost:3000",
   undefined,
 ];
 
@@ -39,7 +43,7 @@ app.use(
   cors({
     origin: function (origin, callback) {
       console.log("🌐 Solicitud desde:", origin); // 👀 DEBUG
-    
+
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -58,7 +62,7 @@ app.use("/api", routes);
 app.use(errorMiddleware as express.ErrorRequestHandler);
 
 // ⏰ Ejecutar limpieza cada 30 min
-//setInterval(cleanExpiredTokens, 30 * 60 * 1000);
+// setInterval(cleanExpiredTokens, 30 * 60 * 1000);
 
 const forceDb = process.env.SYNC === "si";
 
@@ -88,8 +92,16 @@ const startServer = async () => {
       console.log("⚠️ No se ejecuta el Seeder porque la sincronización fue forzada.");
     }
 
-    app.listen(process.env.PORT, () => {
-      console.log(`✅ Servidor corriendo en el puerto ${process.env.PORT}`);
+    const certPath = path.resolve(__dirname, "../certificates/cert.pem");
+    const keyPath = path.resolve(__dirname, "../certificates/key.pem");
+
+    const httpsOptions = {
+      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(keyPath),
+    };
+
+    https.createServer(httpsOptions, app).listen(process.env.PORT || 3001, () => {
+      console.log(`✅ Servidor HTTPS activo en https://localhost:${process.env.PORT || 3001}`);
     });
   } catch (error) {
     console.error("❌ Error al iniciar el servidor:", error);

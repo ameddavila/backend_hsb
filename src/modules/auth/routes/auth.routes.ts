@@ -1,5 +1,5 @@
 import express from "express";
-import { login, handleRefreshToken } from "../controllers/auth.controller";
+import { login, handleRefreshToken, logout } from "../controllers/auth.controller";
 
 // Importamos nuestros nuevos middlewares
 import { verifyRefreshTokenMiddleware } from "../middleware/verifyRefreshToken.middleware";
@@ -33,5 +33,8 @@ router.post("/login", login);
  * 3. handleRefreshToken genera los nuevos tokens y rota el CSRF
  */
 router.post("/refresh", verifyRefreshTokenMiddleware, verifyCsrfToken, handleRefreshToken);
+
+/*salir y borrar*/
+router.post("/logout", logout); // ✅ Esto es lo que necesitas
 
 export default router;
