@@ -1,10 +1,10 @@
+// src/middleware/permission.middleware.ts
 import { Response, NextFunction, RequestHandler } from "express";
 import { RequestWithUser } from "@modules/auth/types/requestWithUser";
 import { hasRole } from "@utils/hasRole";
 
 /**
  * Middleware que verifica si el usuario tiene uno de los roles permitidos.
- * @param allowedRoles Roles permitidos (ej: ["Administrador", "Usuario"])
  */
 export const checkPermission = (allowedRoles: string[]): RequestHandler => {
   return (req: RequestWithUser, res: Response, next: NextFunction): void => {
@@ -15,7 +15,7 @@ export const checkPermission = (allowedRoles: string[]): RequestHandler => {
     }
 
     if (!hasRole(req, allowedRoles)) {
-      console.warn(`🚫 Acceso denegado. Rol actual: '${req.user?.roleName}'`);
+      console.warn(`🚫 Rol no autorizado: '${req.user?.roleName}'`);
       res.status(403).json({
         message: "No tienes permisos suficientes para acceder a esta ruta",
       });

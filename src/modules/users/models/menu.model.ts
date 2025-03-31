@@ -43,6 +43,7 @@ export default class MenuModel extends Model {
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
+    defaultValue: 0,
   })
   sortOrder!: number;
 

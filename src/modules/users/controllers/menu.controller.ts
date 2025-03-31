@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { Op } from "sequelize";
 import MenuModel from "../models/menu.model";
+import RoleModel from "@modules/users/models/role.model";
+
 import Joi from "joi";
 
 /** 
@@ -64,7 +66,7 @@ export const getMenuById = async (req: Request, res: Response): Promise<void> =>
  */
 export const createMenu = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Validar la entrada
+    // ✅ Validar entrada
     const { error } = menuSchema.validate(req.body);
     if (error) {
       res.status(400).json({
@@ -74,22 +76,41 @@ export const createMenu = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // Verificar si ya existe un menú con el mismo nombre (opcional)
     const { name } = req.body;
+
+    // ✅ Verificar duplicado
     const existing = await MenuModel.findOne({ where: { name } });
     if (existing) {
-     res.status(409).json({ error: "Ya existe un menú con ese nombre" });
-     return;
+      res.status(409).json({ error: "Ya existe un menú con ese nombre" });
+      return;
     }
 
-    // Crear el menú
+    // ✅ Calcular sortOrder si no viene
+    const maxSortRaw = await MenuModel.max("sortOrder");
+    const maxSort = typeof maxSortRaw === "number" ? maxSortRaw : 0;
+
+    // ✅ Crear menú con sortOrder dinámico
     const newMenu = await MenuModel.create({
-      ...req.body, // name, path, icon, parentId, etc.
+      ...req.body,
+      sortOrder: req.body.sortOrder ?? maxSort + 1,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    res.status(201).json(newMenu);
+    // ✅ Asignar al rol "Administrador"
+    const adminRole = await RoleModel.findOne({ where: { name: "Administrador" } });
+    if (adminRole) {
+      await adminRole.$add("menus", newMenu);
+      console.log("✅ Menú asignado al rol Administrador");
+    } else {
+      console.warn("⚠️ Rol Administrador no encontrado");
+    }
+
+    // ✅ Enviar respuesta
+    res.status(201).json({
+      message: "Menú creado correctamente y asignado al rol Administrador",
+      data: newMenu,
+    });
   } catch (error) {
     console.error("❌ Error en createMenu:", error);
     res.status(500).json({ error: "Error al crear el menú" });
