@@ -6,6 +6,7 @@ import {
   createMenu,
   deleteMenu,
   getMenuById,
+  updateMenu
 } from "@modules/users/controllers/menu.controller";
 
 import { authMiddleware } from "@middleware/auth.middleware";
@@ -39,7 +40,7 @@ router.get(
 router.get(
   "/",
   authMiddleware,
-  checkPermission(["Administrador", "Usuario"]),
+  checkPermission(["Administrador", "Usuario"]),  //IMPORTANTE AMED AQUI MEJORAR 
   getAllMenus
 );
 
@@ -83,6 +84,19 @@ router.delete(
   authMiddleware,
   checkPermission(["Administrador"]),
   deleteMenu
+);
+/**
+ * UPDATE /menus/:id
+ * @desc ACTUALIZA un menú por su ID. 
+ *       Solo puede hacerlo el rol "Administrador".
+ * @middlewares - authMiddleware: requiere autenticación.
+ *              - checkPermission(["Administrador"]): restringe el acceso.
+ */
+router.put(
+  "/:id",
+  authMiddleware,
+  checkPermission(["Administrador"]),
+  updateMenu
 );
 
 export default router;

@@ -2,14 +2,16 @@ import { Request, Response } from "express";
 import { Op } from "sequelize";
 import MenuModel from "../models/menu.model";
 import RoleModel from "@modules/users/models/role.model";
+import RoleMenuModel from "@modules/users/models/roleMenu.model";
 import Joi from "joi";
+import { Console } from "console";
 
 const menuSchema = Joi.object({
   name: Joi.string().min(3).max(100).required(),
-  path: Joi.string().max(255).allow("").optional(),
-  icon: Joi.string().max(50).allow("").optional(),
+  path: Joi.string().max(255).allow("", null).optional(),
+  icon: Joi.string().max(50).allow("", null).optional(),
   parentId: Joi.number().allow(null).optional(),
-  isActive: Joi.boolean().optional(),
+  isActive: Joi.boolean().allow(null).optional(),
   sortOrder: Joi.number().optional(),
   description: Joi.string().max(255).allow("").optional(),
 });
@@ -92,8 +94,32 @@ export const createMenu = async (req: Request, res: Response): Promise<void> => 
 export const updateMenu = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { error } = menuSchema.validate(req.body);
+    console.log("🔧 [PUT /menus/:id] Actualizando menú ID:", id);
+    console.log("📦 Datos recibidos:", req.body);
+
+    // 🧹 Limpiar campos no permitidos
+    const {
+      name,
+      path,
+      icon,
+      parentId,
+      sortOrder,
+      isActive
+    } = req.body;
+
+    const payload = {
+      name,
+      path,
+      icon,
+      parentId,
+      sortOrder,
+      isActive,
+    };
+
+    // ✅ Validación
+    const { error } = menuSchema.validate(payload);
     if (error) {
+      console.error("❌ Error de validación Joi:", error.details);
       res.status(400).json({
         message: "Error de validación",
         details: error.details.map((d) => d.message),
@@ -101,29 +127,43 @@ export const updateMenu = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    // 🔍 Buscar menú existente
     const menu = await MenuModel.findByPk(id);
     if (!menu) {
       res.status(404).json({ error: "Menú no encontrado" });
       return;
     }
 
-    if (req.body.name && req.body.name !== menu.name) {
+    // 🔎 Validar nombre único (excepto el mismo ID)
+    if (name && name !== menu.name) {
       const existingByName = await MenuModel.findOne({
         where: {
-          name: req.body.name,
+          name,
           id: { [Op.ne]: id },
         },
       });
+
       if (existingByName) {
         res.status(409).json({ error: "Ya existe un menú con ese nombre" });
         return;
       }
     }
 
+    // ✏️ Actualizar el menú
     await menu.update({
-      ...req.body,
+      name,
+      path,
+      icon,
+      parentId: parentId ?? null,
+      sortOrder: sortOrder ?? menu.sortOrder,
+      isActive: isActive ?? menu.isActive,
       updatedAt: new Date(),
     });
+
+    // 🔁 Recargar para obtener datos actualizados
+    await menu.reload();
+
+    console.log("✅ Menú actualizado:", menu.toJSON());
 
     res.status(200).json({
       message: "Menú actualizado correctamente",
@@ -135,17 +175,26 @@ export const updateMenu = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+
 export const deleteMenu = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
     const menu = await MenuModel.findByPk(id);
+    if (!menu) {
+      res.status(404).json({ error: "Menú no encontrado" });
+    }
+
+    // ❌ Eliminar relaciones antes
+    await RoleMenuModel.destroy({ where: { menuId: id } });
 
     if (!menu) {
       res.status(404).json({ error: "Menú no encontrado" });
       return;
     }
-
+    // ✅ Luego el menú
     await menu.destroy();
+
     res.json({ message: "Menú eliminado correctamente" });
   } catch (error) {
     console.error("❌ Error en deleteMenu:", error);

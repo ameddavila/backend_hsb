@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import RefreshTokenModel from "../models/refreshToken.model";
-import UserModel from "@modules/users/models/user.model"; // Asegúrate de importar tu modelo de usuario
+import UserModel from "@modules/users/models/user.model";
 import RoleModel from "@modules/users/models/role.model";
 import { loginUser } from "../services/auth.service";
 import {
@@ -12,9 +12,9 @@ import { generateCsrfToken } from "../services/csrf.service";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-/**
- * Login - Autentica al usuario y envía tokens de acceso y refresco en cookies httpOnly.
- */
+// ================================
+// 🔐 LOGIN
+// ================================
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { usernameOrEmail, password, deviceId } = req.body;
@@ -24,30 +24,47 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // 📥 Autenticación básica (verifica usuario y contraseña)
     const result = await loginUser(usernameOrEmail, password, req);
     if (!result.success) {
       res.status(result.status).json({ message: result.message });
       return;
     }
 
+    // 👀 Obtener rol del usuario
+    const user = await UserModel.findByPk(result.userId, {
+      include: [{ model: RoleModel, as: "roles", through: { attributes: [] } }],
+    });
+
+    const role = user?.roles?.[0];
+    const roleId = role?.id;
+    const roleName = role?.name || "user";
+
+    // 🧠 Generar tokens con role incluido en el payload
+    const accessToken = generateAccessToken({ userId: result.userId, roleId, roleName });
+    const refreshToken = generateRefreshToken({ userId: result.userId });
+
+    // 🧾 Guardar refresh token en la BD
     await RefreshTokenModel.create({
       userId: result.userId,
-      token: result.refreshToken,
+      token: refreshToken,
       deviceId: deviceId || "Unknown",
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       isActive: true,
     });
 
+    // 🛡️ CSRF token ligado al userId
     const csrfToken = generateCsrfToken(result.userId);
 
-    res.cookie("accessToken", result.accessToken, {
+    // 🍪 Seteo de cookies
+    res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       path: "/",
     });
 
-    res.cookie("refreshToken", result.refreshToken, {
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
@@ -61,12 +78,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       path: "/",
     });
 
+    // 📦 Respuesta al frontend
     console.log("🔐 [LOGIN] Cookies enviadas");
     console.log("🧑 Usuario:", {
       id: result.userId,
       username: result.username,
       email: result.email,
-      role: result.userRole,
+      role: roleName,
+      roleId,
     });
     console.log("🔑 CSRF Token:", csrfToken);
 
@@ -74,7 +93,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       id: result.userId,
       username: result.username,
       email: result.email,
-      role: result.userRole || "user",
+      role: roleName,
+      roleId,
       csrfToken,
     });
 
@@ -84,13 +104,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Refresh Token - Genera nuevos tokens y actualiza las cookies.
- */
-export const handleRefreshToken = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// ================================
+// 🔄 REFRESH TOKEN
+// ================================
+export const handleRefreshToken = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
@@ -108,39 +125,38 @@ export const handleRefreshToken = async (
 
     const userId = decoded.userId as string;
 
+    // 🔍 Validamos en BD que el token esté activo
     const oldToken = await RefreshTokenModel.findOne({
       where: { token: refreshToken, isActive: true },
     });
+
     if (!oldToken) {
       console.warn("⛔ RefreshToken no válido en BD");
       res.status(403).json({ error: "Token de refresco no válido." });
       return;
     }
 
-    
     const user = await UserModel.findByPk(userId, {
-      include: [
-        {
-          model: RoleModel,
-          as: "roles",
-          through: { attributes: [] },
-        },
-      ],
+      include: [{ model: RoleModel, as: "roles", through: { attributes: [] } }],
     });
-
 
     if (!user) {
       console.warn("⛔ Usuario no encontrado con ID:", userId);
       res.status(404).json({ error: "Usuario no encontrado." });
       return;
     }
-    const userRole = user.roles?.[0]?.name || "user";
 
+    const role = user.roles?.[0];
+    const roleId = role?.id;
+    const roleName = role?.name || "user";
+
+    // 🔁 Invalidamos el token anterior
     const deviceId = oldToken.deviceId;
     await oldToken.update({ isActive: false });
 
+    // ♻️ Generamos nuevos tokens
     const newRefreshToken = generateRefreshToken({ userId });
-    const newAccessToken = generateAccessToken({ userId });
+    const newAccessToken = generateAccessToken({ userId, roleId, roleName });
     const csrfToken = generateCsrfToken(userId);
 
     await RefreshTokenModel.create({
@@ -177,7 +193,8 @@ export const handleRefreshToken = async (
       id: user.id,
       username: user.username,
       email: user.email,
-      role: userRole,
+      role: roleName,
+      roleId,
     });
     console.log("🔑 CSRF Token:", csrfToken);
 
@@ -185,7 +202,8 @@ export const handleRefreshToken = async (
       id: user.id,
       username: user.username,
       email: user.email,
-      role: userRole || "user",
+      role: roleName,
+      roleId,
       csrfToken,
     });
   } catch (error) {
@@ -194,9 +212,9 @@ export const handleRefreshToken = async (
   }
 };
 
-/**
- * Logout - Revoca el token y limpia las cookies.
- */
+// ================================
+// 🚪 LOGOUT
+// ================================
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -213,6 +231,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
       await tokenRecord.update({ isActive: false });
     }
 
+    // 🧹 Limpieza de cookies
     res.clearCookie("accessToken", {
       httpOnly: true,
       secure: isProduction,
@@ -235,7 +254,6 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
     });
 
     console.log("🚪 Logout exitoso. Cookies eliminadas.");
-
     res.status(200).json({ message: "Sesión cerrada correctamente." });
   } catch (error) {
     console.error("❌ Error en logout:", error);

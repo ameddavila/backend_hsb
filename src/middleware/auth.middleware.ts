@@ -25,21 +25,25 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction
 ): void => {
-
   let token: string | undefined;
   const authHeader = req.headers.authorization;
 
+  console.log("🔐 [authMiddleware] Iniciando validación de token...");
+
   // 1. Revisar si tenemos un header "Authorization" que empiece con "Bearer "
   if (authHeader && authHeader.startsWith("Bearer ")) {
-    // Tomamos el token tras "Bearer "
     token = authHeader.split(" ")[1];
+    console.log("📥 Token recibido desde header Authorization.");
   } else {
-    // 2. Si no, usamos la cookie "accessToken"
     token = req.cookies?.accessToken;
+    if (token) {
+      console.log("🍪 Token recibido desde cookie accessToken.");
+    }
   }
 
-  // 3. Si al final no hay token ni en header ni en cookie, error
+  // 2. Si al final no hay token ni en header ni en cookie, error
   if (!token) {
+    console.warn("⚠️ No se recibió token de acceso en header ni cookies.");
     res.status(401).json({
       message: "No autorizado: Falta o formato incorrecto del token",
     });
@@ -47,7 +51,7 @@ export const authMiddleware = (
   }
 
   try {
-    // 4. Verificamos con JWT
+    // 3. Verificamos con JWT
     const decoded = jwt.verify(
       token,
       process.env.ACCESS_TOKEN_SECRET as string
@@ -57,18 +61,23 @@ export const authMiddleware = (
       roleName?: string;
     };
 
-    // 5. Chequeamos si hay userId en el payload
+    console.log("✅ Token decodificado con éxito:", decoded);
+
+    // 4. Chequeamos si hay userId en el payload
     if (!decoded?.userId) {
+      console.warn("⛔ Token no contiene userId.");
       res.status(401).json({ message: "Token inválido: Falta userId" });
       return;
     }
 
-    // 6. Asignamos a req.user
+    // 5. Asignamos a req.user
     req.user = {
       userId: decoded.userId,
       roleId: decoded.roleId,
       roleName: decoded.roleName,
     };
+
+    console.log("👤 Usuario autenticado:", req.user);
 
     next();
   } catch (error) {
@@ -76,3 +85,4 @@ export const authMiddleware = (
     res.status(401).json({ message: "Token inválido o expirado" });
   }
 };
+
