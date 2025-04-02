@@ -29,8 +29,8 @@ export const initializeDatabase = async (): Promise<Sequelize> => {
       dialect: "mssql",
       dialectOptions: {
         options: {
-          encrypt: isProduction,
-          trustServerCertificate: !isProduction,
+          encrypt: false,/*sProduction,*/
+          trustServerCertificate:  true,/*!isProduction,*/
           instanceName: process.env.DB_INSTANCE,
           timezone: "Z",
         },
