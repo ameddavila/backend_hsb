@@ -4,7 +4,7 @@ import { Sequelize } from "sequelize-typescript";
 import DepartamentoModel from "./departamento.model";
 import FuenteFinanciamientoModel from "./fuenteFinanciamiento.model";
 import CargoModel from "./cargo.model";
-import {EmpleadoModel} from "./empleado.model";
+import EmpleadoModel from "./empleado.model";
 import DispositivoModel from "./dispositivo.model";
 import CredencialBiometricaModel from "./credencialBiometrica.model";
 import TipoPermisoModel from "./tipoPermiso.model";
@@ -16,7 +16,7 @@ import AuditoriaModel from "./auditoria.model";
 import ConfigBiometricaModel from "./configBiometrica.model";
 import DetalleHorarioModel from "./detalleHorario.model";
 import TipoHorarioModel from "./tipoHorario.model";
-import { ZonaModel } from "./zona.model";
+import ZonaModel  from "./zona.model";
 
 export const rrhhModels = [
   DepartamentoModel,

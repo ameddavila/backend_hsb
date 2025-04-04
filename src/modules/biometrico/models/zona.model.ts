@@ -2,7 +2,7 @@ import { Column, Model, Table, DataType, HasMany } from 'sequelize-typescript';
 import  DispositivoModel  from './dispositivo.model';
 
 @Table({ tableName: 'Zonas' })
-export class ZonaModel extends Model {
+export default class ZonaModel extends Model {
   @Column({ primaryKey: true, autoIncrement: true })
   ZonaId!: number;
 

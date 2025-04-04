@@ -10,7 +10,7 @@ import {
   import  PermisoModel  from './permiso.model';
   
   @Table({ tableName: 'Empleados' })
-  export class EmpleadoModel extends Model {
+  export default class EmpleadoModel extends Model {
     @Column({ primaryKey: true, autoIncrement: true })
     EmpleadoId!: number;
   

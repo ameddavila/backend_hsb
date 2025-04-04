@@ -1,5 +1,5 @@
 import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript";
-import { ZonaModel } from "./zona.model";
+import  ZonaModel  from "./zona.model";
 
 @Table({ tableName: "bio_Dispositivos" })
 export default class DispositivoModel extends Model {

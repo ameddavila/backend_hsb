@@ -1,5 +1,5 @@
 import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript";
-import {EmpleadoModel} from "./empleado.model";
+import EmpleadoModel from "./empleado.model";
 import TipoPermisoModel from "./tipoPermiso.model";
 
 @Table({ tableName: "bio_Permisos" })
