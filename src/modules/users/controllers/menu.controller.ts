@@ -183,16 +183,10 @@ export const deleteMenu = async (req: Request, res: Response): Promise<void> => 
     const menu = await MenuModel.findByPk(id);
     if (!menu) {
       res.status(404).json({ error: "Menú no encontrado" });
-    }
-
-    // ❌ Eliminar relaciones antes
-    await RoleMenuModel.destroy({ where: { menuId: id } });
-
-    if (!menu) {
-      res.status(404).json({ error: "Menú no encontrado" });
       return;
     }
-    // ✅ Luego el menú
+
+    await RoleMenuModel.destroy({ where: { menuId: id } });
     await menu.destroy();
 
     res.json({ message: "Menú eliminado correctamente" });
@@ -201,3 +195,4 @@ export const deleteMenu = async (req: Request, res: Response): Promise<void> => 
     res.status(500).json({ error: "Error al eliminar el menú" });
   }
 };
+
