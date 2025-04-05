@@ -1,113 +1,118 @@
-import { Request, Response } from "express";
-import { dbConnectionSchema } from "@modules/config/schemas/dbConnection.schema";
-import ConfigConexionModel from "@modules/config/models/dbConnection.model";
+// src/modules/config/controllers/dbConnection.controller.ts
+import { RequestHandler } from "express";
+import { createDynamicSequelize } from "@modules/config/utils/createDynamicSequelize";
+import DbConnectionModel from "../models/dbConnection.model";
+import { insertDefaultData } from "@modules/config/seeds/insertDefaultData"
 
-// 📌 Crear una conexión
-export const create = async (req: Request, res: Response) => {
+
+// ✅ Crear una nueva conexión
+export const create: RequestHandler = async (req, res) => {
   const { error, value } = dbConnectionSchema.validate(req.body, { abortEarly: false });
 
   if (error) {
-    const errores = error.details.map(e => e.message);
-    return res.status(400).json({ mensaje: "Error de validación", errores });
+    const errores = error.details.map((e) => e.message);
+    res.status(400).json({ mensaje: "Error de validación", errores });
+    return;
   }
 
   try {
-    // Verificar si ya existe una conexión con el mismo nombre o base de datos
-    const existe = await ConfigConexionModel.findOne({
-      where: {
-        nombre: value.nombre,
-      },
+    const existente = await DbConnectionModel.findOne({
+      where: { nombre: value.nombre },
     });
 
-    if (existe) {
-      return res.status(409).json({ mensaje: "Ya existe una conexión con ese nombre." });
+    if (existente) {
+      res.status(409).json({ mensaje: "Ya existe una conexión con ese nombre." });
+      return;
     }
 
-    const nuevaConexion = await ConfigConexionModel.create(value);
-    return res.status(201).json({ mensaje: "Conexión creada exitosamente.", data: nuevaConexion });
-
+    const nuevaConexion = await DbConnectionModel.create(value);
+    res.status(201).json({ mensaje: "Conexión creada exitosamente.", data: nuevaConexion });
   } catch (err) {
-    console.error("Error al crear conexión:", err);
-    return res.status(500).json({ mensaje: "Error interno del servidor." });
+    console.error("❌ Error al crear conexión:", err);
+    res.status(500).json({ mensaje: "Error interno del servidor." });
   }
 };
 
-// 📌 Obtener todas las conexiones
-export const getAll = async (_req: Request, res: Response) => {
+// ✅ Obtener todas las conexiones
+export const getAll: RequestHandler = async (_req, res) => {
   try {
-    const conexiones = await ConfigConexionModel.findAll();
-    return res.status(200).json({ data: conexiones });
+    const conexiones = await DbConnectionModel.findAll({ order: [["id", "ASC"]] });
+    res.status(200).json({ data: conexiones });
   } catch (err) {
-    console.error("Error al obtener conexiones:", err);
-    return res.status(500).json({ mensaje: "Error al obtener las conexiones." });
+    console.error("❌ Error al obtener conexiones:", err);
+    res.status(500).json({ mensaje: "Error interno del servidor." });
   }
 };
 
-// 📌 Obtener una conexión por ID
-export const getById = async (req: Request, res: Response) => {
+// ✅ Obtener una conexión por ID
+export const getById: RequestHandler = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const conexion = await ConfigConexionModel.findByPk(id);
+    const conexion = await DbConnectionModel.findByPk(id);
 
     if (!conexion) {
-      return res.status(404).json({ mensaje: "Conexión no encontrada." });
+      res.status(404).json({ mensaje: "Conexión no encontrada." });
+      return;
     }
 
-    return res.status(200).json({ data: conexion });
+    res.status(200).json({ data: conexion });
   } catch (err) {
-    console.error("Error al buscar conexión:", err);
-    return res.status(500).json({ mensaje: "Error interno del servidor." });
+    console.error("❌ Error al buscar conexión:", err);
+    res.status(500).json({ mensaje: "Error interno del servidor." });
   }
 };
 
-// 📌 Actualizar una conexión
-export const update = async (req: Request, res: Response) => {
+// ✅ Actualizar una conexión
+export const update: RequestHandler = async (req, res) => {
   const { id } = req.params;
   const { error, value } = dbConnectionSchema.validate(req.body, { abortEarly: false });
 
   if (error) {
-    const errores = error.details.map(e => e.message);
-    return res.status(400).json({ mensaje: "Error de validación", errores });
+    const errores = error.details.map((e) => e.message);
+    res.status(400).json({ mensaje: "Error de validación", errores });
+    return;
   }
 
   try {
-    const conexion = await ConfigConexionModel.findByPk(id);
+    const conexion = await DbConnectionModel.findByPk(id);
     if (!conexion) {
-      return res.status(404).json({ mensaje: "Conexión no encontrada." });
+      res.status(404).json({ mensaje: "Conexión no encontrada." });
+      return;
     }
 
-    // Verifica si el nombre ya está usado por otro registro
-    const duplicado = await ConfigConexionModel.findOne({
+    const duplicado = await DbConnectionModel.findOne({
       where: { nombre: value.nombre },
     });
 
     if (duplicado && duplicado.id !== conexion.id) {
-      return res.status(409).json({ mensaje: "Ya existe una conexión con ese nombre." });
+      res.status(409).json({ mensaje: "Ya existe otra conexión con ese nombre." });
+      return;
     }
 
     await conexion.update(value);
-    return res.status(200).json({ mensaje: "Conexión actualizada correctamente.", data: conexion });
+    res.status(200).json({ mensaje: "Conexión actualizada correctamente.", data: conexion });
   } catch (err) {
-    console.error("Error al actualizar conexión:", err);
-    return res.status(500).json({ mensaje: "Error interno del servidor." });
+    console.error("❌ Error al actualizar conexión:", err);
+    res.status(500).json({ mensaje: "Error interno del servidor." });
   }
 };
 
-// 📌 Eliminar una conexión
-export const remove = async (req: Request, res: Response) => {
+// ✅ Eliminar una conexión
+export const remove: RequestHandler = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const conexion = await ConfigConexionModel.findByPk(id);
+    const conexion = await DbConnectionModel.findByPk(id);
     if (!conexion) {
-      return res.status(404).json({ mensaje: "Conexión no encontrada." });
+      res.status(404).json({ mensaje: "Conexión no encontrada." });
+      return;
     }
 
     await conexion.destroy();
-    return res.status(200).json({ mensaje: "Conexión eliminada correctamente." });
+    res.status(200).json({ mensaje: "Conexión eliminada correctamente." });
   } catch (err) {
-    console.error("Error al eliminar conexión:", err);
-    return res.status(500).json({ mensaje: "Error interno del servidor." });
+    console.error("❌ Error al eliminar conexión:", err);
+    res.status(500).json({ mensaje: "Error interno del servidor." });
   }
 };
