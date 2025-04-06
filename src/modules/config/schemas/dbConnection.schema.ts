@@ -21,11 +21,13 @@ export const dbConnectionSchema = Joi.object({
     }),
 
   servidor: Joi.string()
-    .hostname()
+    .min(3)
+    .max(100)
     .required()
     .messages({
-      "string.hostname": "El servidor debe ser un nombre de host válido.",
       "string.empty": "El servidor no puede estar vacío.",
+      "string.min": "El servidor debe tener al menos 3 caracteres.",
+      "string.max": "El servidor no puede exceder los 100 caracteres.",
       "any.required": "El servidor es obligatorio.",
     }),
 
@@ -41,6 +43,7 @@ export const dbConnectionSchema = Joi.object({
     }),
 
   usuario: Joi.string()
+    .min(1)
     .required()
     .messages({
       "string.empty": "El usuario no puede estar vacío.",
@@ -48,6 +51,7 @@ export const dbConnectionSchema = Joi.object({
     }),
 
   contrasena: Joi.string()
+    .min(1)
     .required()
     .messages({
       "string.empty": "La contraseña no puede estar vacía.",
@@ -55,6 +59,7 @@ export const dbConnectionSchema = Joi.object({
     }),
 
   baseDatos: Joi.string()
+    .min(1)
     .required()
     .messages({
       "string.empty": "El nombre de la base de datos no puede estar vacío.",

@@ -79,6 +79,7 @@ export const initializeDatabase = async (): Promise<Sequelize> => {
 
     // Cargar modelos de cada módulo
     for (const folder of moduleFolders) {
+      if (folder === "biometrico") continue; // ⛔ omitimos biométrico aquí
       const modelDir = path.join(modulesDir, folder, "models");
 
       if (existsSync(modelDir) && readdirSync(modelDir).length > 0) {

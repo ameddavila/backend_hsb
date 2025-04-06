@@ -1,16 +1,13 @@
-// src/modules/config/controllers/dbConnection.controller.ts
-import { RequestHandler } from "express";
-import { createDynamicSequelize } from "@modules/config/utils/createDynamicSequelize";
+import { Request, Response } from "express";
 import DbConnectionModel from "../models/dbConnection.model";
-import { insertDefaultData } from "@modules/config/seeds/insertDefaultData"
+import { dbConnectionSchema } from "../schemas/dbConnection.schema";
 
-
-// ✅ Crear una nueva conexión
-export const create: RequestHandler = async (req, res) => {
+// 📌 Crear una nueva conexión
+export const create = async (req: Request, res: Response): Promise<void> => {
   const { error, value } = dbConnectionSchema.validate(req.body, { abortEarly: false });
 
   if (error) {
-    const errores = error.details.map((e) => e.message);
+    const errores = error.details.map((e: any) => e.message);
     res.status(400).json({ mensaje: "Error de validación", errores });
     return;
   }
@@ -33,8 +30,8 @@ export const create: RequestHandler = async (req, res) => {
   }
 };
 
-// ✅ Obtener todas las conexiones
-export const getAll: RequestHandler = async (_req, res) => {
+// 📌 Obtener todas las conexiones
+export const getAll = async (_req: Request, res: Response): Promise<void> => {
   try {
     const conexiones = await DbConnectionModel.findAll({ order: [["id", "ASC"]] });
     res.status(200).json({ data: conexiones });
@@ -44,8 +41,8 @@ export const getAll: RequestHandler = async (_req, res) => {
   }
 };
 
-// ✅ Obtener una conexión por ID
-export const getById: RequestHandler = async (req, res) => {
+// 📌 Obtener una conexión por ID
+export const getById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
 
   try {
@@ -63,13 +60,13 @@ export const getById: RequestHandler = async (req, res) => {
   }
 };
 
-// ✅ Actualizar una conexión
-export const update: RequestHandler = async (req, res) => {
+// 📌 Actualizar una conexión
+export const update = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { error, value } = dbConnectionSchema.validate(req.body, { abortEarly: false });
 
   if (error) {
-    const errores = error.details.map((e) => e.message);
+    const errores = error.details.map((e: any) => e.message);
     res.status(400).json({ mensaje: "Error de validación", errores });
     return;
   }
@@ -98,8 +95,8 @@ export const update: RequestHandler = async (req, res) => {
   }
 };
 
-// ✅ Eliminar una conexión
-export const remove: RequestHandler = async (req, res) => {
+// 📌 Eliminar una conexión
+export const remove = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
 
   try {

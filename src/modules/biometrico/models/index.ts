@@ -38,7 +38,7 @@ export const rrhhModels = [
 ];
 
 // Asociaciones manuales (opcional si no usas decorators @HasOne/@BelongsTo)
-
+/*
 export const associateRRHHModels = () => {
   // Empleado -> Departamento, Cargo, FuenteFinanciamiento
   EmpleadoModel.belongsTo(DepartamentoModel, { foreignKey: "departamentoId" });
@@ -63,4 +63,4 @@ export const associateRRHHModels = () => {
 
   // ConfigBiometrica -> Dispositivo
   ConfigBiometricaModel.belongsTo(DispositivoModel, { foreignKey: "dispositivoId" });
-};
+};*/

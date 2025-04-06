@@ -1,7 +1,8 @@
 import { Sequelize } from "sequelize-typescript";
-import { rrhhModels, associateRRHHModels } from "@modules/biometrico/models";
+import { rrhhModels } from "@modules/biometrico/models";
+import {associateBiometricoModels} from "@relationships/biometrico.relations"
 
-interface ConnectionConfig {
+interface RemoteConfig {
   host: string;
   port: number;
   database: string;
@@ -10,11 +11,14 @@ interface ConnectionConfig {
   ssl?: boolean;
 }
 
-export const createDynamicSequelize = async (config: ConnectionConfig): Promise<Sequelize> => {
+/**
+ * Inicializa una base de datos remota usando los modelos biométricos
+ */
+export const initializeRemoteDatabase = async (config: RemoteConfig): Promise<Sequelize> => {
   const sequelize = new Sequelize({
     dialect: "mssql",
     host: config.host,
-    port: config.port,
+    port: config.port || 1433,
     database: config.database,
     username: config.username,
     password: config.password,
@@ -28,10 +32,11 @@ export const createDynamicSequelize = async (config: ConnectionConfig): Promise<
     timezone: "America/La_Paz",
   });
 
-  // Agregar modelos y relaciones
   sequelize.addModels(rrhhModels);
-  associateRRHHModels();
+  associateBiometricoModels(); // relaciones específicas
 
   await sequelize.authenticate();
+  console.log(`✅ Conectado a base remota: ${config.database}`);
+
   return sequelize;
 };

@@ -14,7 +14,7 @@ import { initializeRelationships } from "@relationships/relationships";
 import routes from "./routes";
 import { errorMiddleware } from "@middleware/error.middleware";
 import seedData from "./scripts/seedData";
-import { initializeDatabase } from "./config/database";
+import { initializeCentralDatabase } from "./config/initializeCentralDatabase";
 
 // 🧪 Cargar variables de entorno
 dotenv.config();
@@ -71,7 +71,7 @@ const startServer = async () => {
   try {
     process.emitWarning = () => {}; // Silenciar advertencias
 
-    const sequelize = await initializeDatabase();
+    const sequelize = await initializeCentralDatabase();
     initializeRelationships();
     await sequelize.authenticate();
 
