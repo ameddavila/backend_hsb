@@ -1,20 +1,20 @@
 import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript";
-import  ZonaModel  from "./zona.model";
+import ZonaModel from "./zona.model";
 
-@Table({ tableName: "bio_Dispositivos" })
+@Table({ tableName: "Dispositivos" })
 export default class DispositivoModel extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   dispositivoId!: number;
 
   @ForeignKey(() => ZonaModel)
-  @Column(DataType.INTEGER)
-  ZonaId!: number;
+  @Column({ field: 'zonaId', type: DataType.INTEGER })
+  zonaId!: number;
 
   @Column(DataType.STRING)
   nombre!: string;
 
   @Column({ type: DataType.STRING, unique: true })
-  NumeroSerie!: string;
+  numeroSerie!: string;
 
   @Column({ type: DataType.STRING(15), unique: true })
   ip!: string;

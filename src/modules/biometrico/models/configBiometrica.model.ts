@@ -1,7 +1,7 @@
 import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript";
 import DispositivoModel from "./dispositivo.model";
 
-@Table({ tableName: "bio_ConfigBiometrica" })
+@Table({ tableName: "ConfigBiometrica" })
 export default class ConfigBiometricaModel extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   configId!: number;
@@ -28,7 +28,7 @@ export default class ConfigBiometricaModel extends Model {
   puertoBD!: number;
 
   @ForeignKey(() => DispositivoModel)
-  @Column(DataType.INTEGER)
+  @Column({ field: 'dispositivoId', type: DataType.INTEGER })
   dispositivoId!: number;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: false })

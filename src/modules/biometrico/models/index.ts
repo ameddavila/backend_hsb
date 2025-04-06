@@ -36,7 +36,7 @@ export const rrhhModels = [
   TipoHorarioModel,
   ZonaModel,
 ];
-
+export { associateBiometricoModels } from '@modules/biometrico/relationships/biometrico.relations';
 // Asociaciones manuales (opcional si no usas decorators @HasOne/@BelongsTo)
 /*
 export const associateRRHHModels = () => {

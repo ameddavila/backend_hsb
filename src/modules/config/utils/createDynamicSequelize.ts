@@ -1,5 +1,6 @@
 import { Sequelize } from "sequelize-typescript";
-import { rrhhModels, associateRRHHModels } from "@modules/biometrico/models";
+import { rrhhModels } from "@modules/biometrico/models";
+import { associateBiometricoModels } from "@modules/biometrico/relationships/biometrico.relations"
 
 interface ConnectionConfig {
   host: string;
@@ -30,7 +31,7 @@ export const createDynamicSequelize = async (config: ConnectionConfig): Promise<
 
   // Agregar modelos y relaciones
   sequelize.addModels(rrhhModels);
-  associateRRHHModels();
+  associateBiometricoModels();
 
   await sequelize.authenticate();
   return sequelize;

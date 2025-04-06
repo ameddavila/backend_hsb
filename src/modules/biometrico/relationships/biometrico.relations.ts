@@ -1,4 +1,4 @@
-import EmpleadoModel  from "@modules/biometrico/models/empleado.model";
+import EmpleadoModel from "@modules/biometrico/models/empleado.model";
 import DepartamentoModel from "@modules/biometrico/models/departamento.model";
 import FuenteFinanciamientoModel from "@modules/biometrico/models/fuenteFinanciamiento.model";
 import CargoModel from "@modules/biometrico/models/cargo.model";
@@ -28,14 +28,16 @@ export const associateBiometricoModels = () => {
   // Permiso → TipoPermiso
   PermisoModel.belongsTo(TipoPermisoModel, { foreignKey: "tipoPermisoId" });
 
-  // Turnos → Horarios
+  // Asignación de turnos → Tipo horario
   AsignacionTurnoModel.belongsTo(TipoHorarioModel, { foreignKey: "tipoHorarioId" });
+
+  // Detalle de horario → Tipo horario
   DetalleHorarioModel.belongsTo(TipoHorarioModel, { foreignKey: "tipoHorarioId" });
 
   // Marcación → Dispositivo
   MarcacionModel.belongsTo(DispositivoModel, { foreignKey: "dispositivoId" });
 
-  // ConfigBiometrica → Dispositivo
+  // Configuración biométrica → Dispositivo
   ConfigBiometricaModel.belongsTo(DispositivoModel, { foreignKey: "dispositivoId" });
 
   // Dispositivo → Zona

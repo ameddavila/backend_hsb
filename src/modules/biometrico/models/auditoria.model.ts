@@ -1,6 +1,6 @@
 import { Table, Column, Model, DataType } from "sequelize-typescript";
 
-@Table({ tableName: "bio_Auditoria" })
+@Table({ tableName: "Auditoria" })
 export default class AuditoriaModel extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   auditoriaId!: number;

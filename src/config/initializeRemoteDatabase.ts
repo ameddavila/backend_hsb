@@ -1,6 +1,6 @@
 import { Sequelize } from "sequelize-typescript";
 import { rrhhModels } from "@modules/biometrico/models";
-import {associateBiometricoModels} from "@relationships/biometrico.relations"
+import {associateBiometricoModels} from "@modules/biometrico/relationships/biometrico.relations"
 
 interface RemoteConfig {
   host: string;

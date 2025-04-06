@@ -2,17 +2,17 @@ import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript
 import EmpleadoModel from "./empleado.model";
 import TipoHorarioModel from "./tipoHorario.model";
 
-@Table({ tableName: "bio_AsignacionTurnos" })
+@Table({ tableName: "AsignacionTurnos" })
 export default class AsignacionTurnoModel extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   asignacionId!: number;
 
   @ForeignKey(() => EmpleadoModel)
-  @Column(DataType.INTEGER)
+  @Column({ field: 'empleadoId', type: DataType.INTEGER })
   empleadoId!: number;
 
   @ForeignKey(() => TipoHorarioModel)
-  @Column(DataType.INTEGER)
+  @Column({ field: 'tipoHorarioId', type: DataType.INTEGER })
   tipoHorarioId!: number;
 
   @Column(DataType.DATE)

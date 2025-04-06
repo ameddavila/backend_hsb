@@ -1,13 +1,13 @@
 import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript";
 import EmpleadoModel from "./empleado.model";
 
-@Table({ tableName: "bio_CredencialesBiometricas" })
+@Table({ tableName: "CredencialesBiometricas" })
 export default class CredencialBiometricaModel extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   credencialId!: number;
 
   @ForeignKey(() => EmpleadoModel)
-  @Column(DataType.INTEGER)
+  @Column({ field: 'empleadoId', type: DataType.INTEGER })
   empleadoId!: number;
 
   @Column(DataType.STRING)

@@ -1,17 +1,13 @@
-import { Column, Model, Table, DataType, HasMany } from 'sequelize-typescript';
-import  DispositivoModel  from './dispositivo.model';
+import { Column, Model, Table, DataType } from 'sequelize-typescript';
 
 @Table({ tableName: 'Zonas' })
 export default class ZonaModel extends Model {
   @Column({ primaryKey: true, autoIncrement: true })
-  ZonaId!: number;
+  zonaId!: number;
 
   @Column({ type: DataType.STRING, allowNull: false, unique: true })
-  Nombre!: string;
+  nombre!: string;
 
   @Column(DataType.STRING)
-  Descripcion?: string;
-
-  @HasMany(() => DispositivoModel)
-  dispositivos?: DispositivoModel[];
+  descripcion?: string;
 }

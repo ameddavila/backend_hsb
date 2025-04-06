@@ -14,9 +14,9 @@ export const insertDefaultData = async (sequelize: Sequelize): Promise<void> => 
   // Zonas
   if (await Zona.count() === 0) {
     await Zona.bulkCreate([
-      { Nombre: "Zona G3", Descripcion: "Puertas controladas por G3" },
-      { Nombre: "Zona G2", Descripcion: "Puertas controladas por G2" },
-      { Nombre: "Zona K4", Descripcion: "Puertas controladas por K4" },
+      { nombre: "Zona G3", descripcion: "Puertas controladas por G3" },
+      { nombre: "Zona G2", descripcion: "Puertas controladas por G2" },
+      { nombre: "Zona K4", descripcion: "Puertas controladas por K4" },
     ]);
   }
 

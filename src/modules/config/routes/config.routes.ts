@@ -8,6 +8,9 @@ import {
   update,
   remove
 } from "@modules/config/controllers/dbConnection.controller";
+import {
+  initializeRemoteDatabase,
+} from '@modules/config/controllers/initRemote.controller';
 
 import { authMiddleware } from "@middleware/auth.middleware";
 import { checkPermission } from "@middleware/permission.middleware";
@@ -76,6 +79,19 @@ router.delete(
   checkPermission(["Administrador"]),
   // verifyCsrfToken,
   remove
+);
+
+/**
+ * INICIALIZAR BD
+ * @desc iNICIALIZA LA BD  por ID. 
+ *       Solo accesible al rol "Administrador".
+ */
+router.post(
+  "/initialize/:id",
+  authMiddleware,
+  checkPermission(["Administrador"]),
+  // verifyCsrfToken,
+  initializeRemoteDatabase
 );
 
 export default router;

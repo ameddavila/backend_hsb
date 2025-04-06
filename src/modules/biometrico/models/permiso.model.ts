@@ -2,17 +2,17 @@ import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript
 import EmpleadoModel from "./empleado.model";
 import TipoPermisoModel from "./tipoPermiso.model";
 
-@Table({ tableName: "bio_Permisos" })
+@Table({ tableName: "Permisos" })
 export default class PermisoModel extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   permisoId!: number;
 
   @ForeignKey(() => EmpleadoModel)
-  @Column(DataType.INTEGER)
+  @Column({ field: 'empleadoId', type: DataType.INTEGER })
   empleadoId!: number;
 
   @ForeignKey(() => TipoPermisoModel)
-  @Column(DataType.INTEGER)
+  @Column({ field: 'tipoPermisoId', type: DataType.INTEGER })
   tipoPermisoId!: number;
 
   @Column(DataType.DATEONLY)

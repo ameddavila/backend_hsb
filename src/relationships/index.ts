@@ -1,7 +1,7 @@
-import { associateBiometricoModels } from "./biometrico.relations";
+//import { associateBiometricoModels } from "../modules/biometrico/relationships/biometrico.relations";
 import{initializeRelationships} from "./relationships"
 
 export const setupAllRelationships = () => {
     initializeRelationships?.();      
-    associateBiometricoModels();   // nuevo módulo
+    //associateBiometricoModels();   // nuevo módulo
 };

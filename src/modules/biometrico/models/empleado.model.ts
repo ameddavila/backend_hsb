@@ -1,89 +1,67 @@
 import {
-    Column, Model, Table, DataType, ForeignKey, BelongsTo, HasMany,
-  } from 'sequelize-typescript';
-  import DepartamentoModel  from './departamento.model';
-  import  FuenteFinanciamientoModel  from './fuenteFinanciamiento.model';
-  import  CargoModel  from './cargo.model';
-  import  CredencialBiometricaModel  from './credencialBiometrica.model';
-  import  AsignacionTurnoModel  from './asignacionTurno.model';
-  import  MarcacionModel  from './marcacion.model';
-  import  PermisoModel  from './permiso.model';
-  
-  @Table({ tableName: 'Empleados' })
-  export default class EmpleadoModel extends Model {
-    @Column({ primaryKey: true, autoIncrement: true })
-    EmpleadoId!: number;
-  
-    @Column({ type: DataType.STRING, allowNull: false, unique: true })
-    CodigoEmpleado!: string;
-  
-    @Column(DataType.STRING)
-    Nombre!: string;
-  
-    @Column(DataType.STRING)
-    ApellidoPaterno!: string;
-  
-    @Column(DataType.STRING)
-    ApellidoMaterno?: string;
-  
-    @Column(DataType.STRING)
-    TelefonoCelular?: string;
-  
-    @Column(DataType.STRING)
-    Profesion?: string;
-  
-    @Column(DataType.STRING)
-    Direccion?: string;
-  
-    @Column(DataType.STRING)
-    Correo?: string;
-  
-    @Column({ type: DataType.STRING, allowNull: false, unique: true })
-    CarnetIdentidad!: string;
-  
-    @Column(DataType.DATE)
-    FechaIngreso!: Date;
-  
-    @ForeignKey(() => DepartamentoModel)
-    @Column
-    DepartamentoId!: number;
-  
-    @ForeignKey(() => FuenteFinanciamientoModel)
-    @Column
-    FuenteFinanciamientoId!: number;
-  
-    @ForeignKey(() => CargoModel)
-    @Column
-    CargoId!: number;
-  
-    @Column(DataType.STRING)
-    CodigoContrato?: string;
-  
-    @Column({ type: DataType.BOOLEAN, defaultValue: true })
-    Activo!: boolean;
-  
-    @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
-    FechaCreacion!: Date;
-  
-    @BelongsTo(() => DepartamentoModel)
-    departamento?: DepartamentoModel;
-  
-    @BelongsTo(() => FuenteFinanciamientoModel)
-    fuenteFinanciamiento?: FuenteFinanciamientoModel;
-  
-    @BelongsTo(() => CargoModel)
-    cargo?: CargoModel;
-  
-    @HasMany(() => CredencialBiometricaModel)
-    credenciales?: CredencialBiometricaModel[];
-  
-    @HasMany(() => AsignacionTurnoModel)
-    turnos?: AsignacionTurnoModel[];
-  
-    @HasMany(() => MarcacionModel)
-    marcaciones?: MarcacionModel[];
-  
-    @HasMany(() => PermisoModel)
-    permisos?: PermisoModel[];
-  }
-  
+  Column,
+  Model,
+  Table,
+  DataType,
+  ForeignKey
+} from 'sequelize-typescript';
+import DepartamentoModel from './departamento.model';
+import FuenteFinanciamientoModel from './fuenteFinanciamiento.model';
+import CargoModel from './cargo.model';
+
+@Table({ tableName: 'Empleados' })
+export default class EmpleadoModel extends Model {
+  @Column({ primaryKey: true, autoIncrement: true })
+  empleadoId!: number;
+
+  @Column({ type: DataType.STRING, allowNull: false, unique: true })
+  codigoEmpleado!: string;
+
+  @Column(DataType.STRING)
+  nombre!: string;
+
+  @Column(DataType.STRING)
+  apellidoPaterno!: string;
+
+  @Column(DataType.STRING)
+  apellidoMaterno?: string;
+
+  @Column(DataType.STRING)
+  telefonoCelular?: string;
+
+  @Column(DataType.STRING)
+  profesion?: string;
+
+  @Column(DataType.STRING)
+  direccion?: string;
+
+  @Column(DataType.STRING)
+  correo?: string;
+
+  @Column({ type: DataType.STRING, allowNull: false, unique: true })
+  carnetIdentidad!: string;
+
+  @Column(DataType.DATE)
+  fechaIngreso!: Date;
+
+  @ForeignKey(() => DepartamentoModel)
+  @Column({ field: 'departamentoId', type: DataType.INTEGER })
+  departamentoId!: number;
+
+  @ForeignKey(() => FuenteFinanciamientoModel)
+  @Column({ field: 'fuenteFinanciamientoId', type: DataType.INTEGER })
+  fuenteFinanciamientoId!: number;
+
+  @ForeignKey(() => CargoModel)
+  @Column({ field: 'cargoId', type: DataType.INTEGER })
+  cargoId!: number;
+
+  @Column(DataType.STRING)
+  codigoContrato?: string;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
+  activo!: boolean;
+
+  @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
+  fechaCreacion!: Date;
+}

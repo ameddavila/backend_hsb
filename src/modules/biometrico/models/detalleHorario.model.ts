@@ -1,13 +1,13 @@
 import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript";
 import TipoHorarioModel from "./tipoHorario.model";
 
-@Table({ tableName: "bio_DetalleHorario" })
+@Table({ tableName: "DetalleHorario" })
 export default class DetalleHorarioModel extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   detalleHorarioId!: number;
 
   @ForeignKey(() => TipoHorarioModel)
-  @Column(DataType.INTEGER)
+  @Column({ field: 'tipoHorarioId', type: DataType.INTEGER })
   tipoHorarioId!: number;
 
   @Column(DataType.TIME)
