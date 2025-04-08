@@ -5,9 +5,18 @@ import {
   Column,
   Model,
   DataType,
+  BelongsToMany,
 } from "sequelize-typescript";
-import { BelongsToManyGetAssociationsMixin } from "sequelize"; // <-- Importar
-import MenuModel from "./menu.model"; // Ajustar la ruta si es diferente
+import PermissionModel from "./permission.model";
+import RolePermissionModel from "./rolePermission.model";
+import MenuModel from "./menu.model";
+import RoleMenuModel from "./roleMenu.model";
+import {
+  BelongsToManyAddAssociationMixin,
+  BelongsToManyGetAssociationsMixin,
+  BelongsToManySetAssociationsMixin,
+  BelongsToManyAddAssociationsMixin,
+} from "sequelize";
 
 @Table({ tableName: "Roles" })
 export default class RoleModel extends Model {
@@ -42,9 +51,21 @@ export default class RoleModel extends Model {
   })
   updatedAt!: Date;
 
-  /**
-   * Mixin declarado para que TypeScript reconozca que
-   * Sequelize genera un método getMenus() en tiempo de ejecución.
-   */
+  // ✅ Relación Role ↔ Permission
+  @BelongsToMany(() => PermissionModel, () => RolePermissionModel)
+  permissions?: PermissionModel[];
+
+  public getPermissions!: BelongsToManyGetAssociationsMixin<PermissionModel>;
+  public addPermission!: BelongsToManyAddAssociationMixin<PermissionModel, number>;
+  public addPermissions!: BelongsToManyAddAssociationsMixin<PermissionModel, number>;
+  public setPermissions!: BelongsToManySetAssociationsMixin<PermissionModel, number>;
+
+  // ✅ Relación Role ↔ Menu
+  @BelongsToMany(() => MenuModel, () => RoleMenuModel)
+  menus?: MenuModel[];
+
   public getMenus!: BelongsToManyGetAssociationsMixin<MenuModel>;
+  public addMenu!: BelongsToManyAddAssociationMixin<MenuModel, number>;
+  public addMenus!: BelongsToManyAddAssociationsMixin<MenuModel, number>;
+  public setMenus!: BelongsToManySetAssociationsMixin<MenuModel, number>;
 }

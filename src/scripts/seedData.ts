@@ -1,51 +1,38 @@
+// src/scripts/seedData.ts
+
 import RoleModel from "../modules/users/models/role.model";
 import PermissionModel from "../modules/users/models/permission.model";
 import UserModel from "../modules/users/models/user.model";
-import UserRoleModel from "../modules/users/models/userRole.model";
-import MenuModel from "../modules/users/models/menu.model"; // Ajusta la ruta según tu proyecto
+import MenuModel from "../modules/users/models/menu.model";
 import bcrypt from "bcrypt";
 
 const seedData = async () => {
   try {
-    // ============================================
-    // 1. DEFINIR LISTA DE PERMISOS
-    // ============================================
-    // Incluimos todas las acciones para varios módulos.
+    // 1. Lista de permisos
     const permissionsToCreate = [
-      // Módulo Users
       { module: "Users", action: "read" },
       { module: "Users", action: "create" },
       { module: "Users", action: "edit" },
       { module: "Users", action: "delete" },
-
-      // Módulo Roles
       { module: "Roles", action: "read" },
       { module: "Roles", action: "create" },
       { module: "Roles", action: "edit" },
       { module: "Roles", action: "delete" },
-
-      // Módulo Permissions
       { module: "Permissions", action: "read" },
       { module: "Permissions", action: "create" },
       { module: "Permissions", action: "edit" },
       { module: "Permissions", action: "delete" },
-
-      // Módulo Menus (para poder leer, crear, editar, eliminar menús)
       { module: "Menus", action: "read" },
       { module: "Menus", action: "create" },
       { module: "Menus", action: "edit" },
       { module: "Menus", action: "delete" },
     ];
 
-    // ============================================
-    // 2. CREAR (O BUSCAR) PERMISOS EN LA TABLA
-    // ============================================
     const createdPermissions = [];
     for (const perm of permissionsToCreate) {
       const [permission] = await PermissionModel.findOrCreate({
         where: { module: perm.module, action: perm.action },
         defaults: {
-          // Le damos un nombre descriptivo (por ejemplo, "Users read")
           name: `${perm.module} ${perm.action}`,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -54,9 +41,7 @@ const seedData = async () => {
       createdPermissions.push(permission);
     }
 
-    // ============================================
-    // 3. CREAR ROLES
-    // ============================================
+    // 2. Crear roles
     const [adminRole] = await RoleModel.findOrCreate({
       where: { name: "Administrador" },
       defaults: {
@@ -84,26 +69,12 @@ const seedData = async () => {
       },
     });
 
-    // ============================================
-    // 4. ASIGNAR PERMISOS A LOS ROLES
-    // ============================================
-    // (A) Administrador -> todos los permisos
-    await adminRole.$add("permissions", createdPermissions);
+    // 3. Asignar permisos
+    await adminRole.addPermissions(createdPermissions);
+    const userReadPermissions = createdPermissions.filter(p => p.action === "read");
+    await userRole.addPermissions(userReadPermissions);
 
-    // (B) Usuario -> solo permisos "read" (puedes ajustarlo)
-    const userReadPermissions = createdPermissions.filter(
-      (p) => p.action === "read"
-    );
-    await userRole.$add("permissions", userReadPermissions);
-
-    // (C) Invitado -> podría no tener permisos, o solo lectura de algún módulo
-    // Ejemplo: invitado sin permisos
-    // await guestRole.$add("permissions", []);
-
-    // ============================================
-    // 5. CREAR MENÚS (PRIMEICONS)
-    // ============================================
-    // Ejemplos: Dashboard, Administración, Usuarios, Roles, Permisos.
+    // 4. Crear menús
     const [dashboardMenu] = await MenuModel.findOrCreate({
       where: { name: "Dashboard" },
       defaults: {
@@ -169,16 +140,12 @@ const seedData = async () => {
       },
     });
 
-    // ============================================
-    // 5.a MENÚ PARA ADMINISTRAR MENÚS
-    // ============================================
-    // Sección principal: "Menús"
     const [menusParent] = await MenuModel.findOrCreate({
       where: { name: "Menús" },
       defaults: {
         path: "/admin/menus",
-        icon: "pi pi-list", // Lista de menús
-        parentId: adminMenu.id, // Hijo de "Administración"
+        icon: "pi pi-list",
+        parentId: adminMenu.id,
         isActive: true,
         sortOrder: 4,
         createdAt: new Date(),
@@ -186,13 +153,12 @@ const seedData = async () => {
       },
     });
 
-    // Submenú para “Crear Menú”
     const [createMenu] = await MenuModel.findOrCreate({
       where: { name: "Crear Menú" },
       defaults: {
         path: "/admin/menus/create",
-        icon: "pi pi-plus", // Ícono para crear
-        parentId: menusParent.id, // Hijo del menú “Menús”
+        icon: "pi pi-plus",
+        parentId: menusParent.id,
         isActive: true,
         sortOrder: 1,
         createdAt: new Date(),
@@ -200,12 +166,8 @@ const seedData = async () => {
       },
     });
 
-    // ============================================
-    // 6. ASIGNAR MENÚS A LOS ROLES
-    // ============================================
-    // Depende de tu config de Sequelize (belongsToMany).
-    // Administrador -> todos los menús
-    await adminRole.$add("menus", [
+    // 5. Asignar menús a roles
+    await adminRole.addMenus([
       dashboardMenu,
       adminMenu,
       usersMenu,
@@ -215,15 +177,10 @@ const seedData = async () => {
       createMenu,
     ]);
 
-    // Usuario -> solo Dashboard y Usuarios (ajusta a tu gusto)
-    await userRole.$add("menus", [dashboardMenu, usersMenu]);
+    await userRole.addMenus([dashboardMenu, usersMenu]);
+    await guestRole.addMenus([dashboardMenu]);
 
-    // Invitado -> solo Dashboard (ejemplo)
-    await guestRole.$add("menus", [dashboardMenu]);
-
-    // ============================================
-    // 7. CREAR USUARIO ADMINISTRADOR INICIAL
-    // ============================================
+    // 6. Crear usuario administrador
     const passwordHash = await bcrypt.hash("Admin1234!", 10);
     const [adminUser] = await UserModel.findOrCreate({
       where: { email: "amed.dav@gmail.com" },
@@ -240,13 +197,7 @@ const seedData = async () => {
       },
     });
 
-    // ============================================
-    // 8. ASIGNAR ROLES AL USUARIO
-    // ============================================
-    await UserRoleModel.findOrCreate({
-      where: { userId: adminUser.id, roleId: adminRole.id },
-      defaults: { createdAt: new Date(), updatedAt: new Date() },
-    });
+    await adminUser.$add("roles", adminRole);
 
     console.log("✅ Seeder ejecutado correctamente.");
   } catch (error) {

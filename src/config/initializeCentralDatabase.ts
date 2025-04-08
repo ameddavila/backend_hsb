@@ -1,3 +1,5 @@
+// src/config/initializeCentralDatabase.ts
+
 import { Sequelize, ModelCtor, Model } from "sequelize-typescript";
 import dotenv from "dotenv";
 import path from "path";
@@ -6,6 +8,7 @@ import { readdirSync, existsSync } from "fs";
 dotenv.config();
 
 let sequelize: Sequelize | null = null;
+const MODULES_TO_EXCLUDE = ["biometrico"]; // 🔥 este módulo se ignora
 
 export const initializeCentralDatabase = async (): Promise<Sequelize> => {
   if (sequelize) return sequelize;
@@ -53,8 +56,9 @@ export const initializeCentralDatabase = async (): Promise<Sequelize> => {
   };
 
   const modulesDir = path.join(__dirname, "../modules");
-  //const folders = readdirSync(modulesDir).filter(f => f !== "biometrico");
-  const folders = readdirSync(modulesDir);
+  const folders = readdirSync(modulesDir).filter(
+    folder => !MODULES_TO_EXCLUDE.includes(folder) // ⛔️ Excluir biometrico
+  );
 
   let allModels: ModelCtor<Model>[] = [];
   for (const folder of folders) {

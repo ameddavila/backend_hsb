@@ -1,5 +1,19 @@
 // src/modules/users/models/menu.model.ts
-import { Table, Column, Model, DataType } from "sequelize-typescript";
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  BelongsToMany,
+} from "sequelize-typescript";
+import RoleModel from "./role.model";
+import RoleMenuModel from "./roleMenu.model";
+import {
+  BelongsToManyAddAssociationMixin,
+  BelongsToManyGetAssociationsMixin,
+  BelongsToManySetAssociationsMixin,
+  BelongsToManyAddAssociationsMixin,
+} from "sequelize";
 
 @Table({ tableName: "Menus" })
 export default class MenuModel extends Model {
@@ -58,4 +72,13 @@ export default class MenuModel extends Model {
     allowNull: false,
   })
   updatedAt!: Date;
+
+  // ✅ Relación Menu ↔ Role (many-to-many)
+  @BelongsToMany(() => RoleModel, () => RoleMenuModel)
+  roles?: RoleModel[];
+
+  public getRoles!: BelongsToManyGetAssociationsMixin<RoleModel>;
+  public addRole!: BelongsToManyAddAssociationMixin<RoleModel, number>;
+  public addRoles!: BelongsToManyAddAssociationsMixin<RoleModel, number>;
+  public setRoles!: BelongsToManySetAssociationsMixin<RoleModel, number>;
 }

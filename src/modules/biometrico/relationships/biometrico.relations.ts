@@ -1,6 +1,5 @@
 import { Sequelize } from "sequelize-typescript";
 
-// ✅ Importa todos los modelos directamente
 import EmpleadoModel from "../models/empleado.model";
 import DepartamentoModel from "../models/departamento.model";
 import FuenteFinanciamientoModel from "../models/fuenteFinanciamiento.model";
@@ -15,12 +14,10 @@ import MarcacionModel from "../models/marcacion.model";
 import DispositivoModel from "../models/dispositivo.model";
 import ZonaModel from "../models/zona.model";
 import ConfigBiometricaModel from "../models/configBiometrica.model";
+import DbConnectionModel from "@modules/config/models/dbConnection.model"; // ✅ agregado
 
-/**
- * Establece relaciones entre modelos conectados dinámicamente
- */
 export const associateBiometricoModels = (sequelize: Sequelize) => {
-  // 📌 Relaciones del empleado
+  // Relaciones del empleado
   EmpleadoModel.belongsTo(DepartamentoModel, { foreignKey: "departamentoId" });
   EmpleadoModel.belongsTo(FuenteFinanciamientoModel, { foreignKey: "fuenteFinanciamientoId" });
   EmpleadoModel.belongsTo(CargoModel, { foreignKey: "cargoId" });
@@ -30,22 +27,24 @@ export const associateBiometricoModels = (sequelize: Sequelize) => {
   EmpleadoModel.hasMany(AsignacionTurnoModel, { foreignKey: "empleadoId" });
   EmpleadoModel.hasMany(MarcacionModel, { foreignKey: "empleadoId" });
 
-  // 📌 Relaciones de permisos y turnos
   PermisoModel.belongsTo(TipoPermisoModel, { foreignKey: "tipoPermisoId" });
   AsignacionTurnoModel.belongsTo(TipoHorarioModel, { foreignKey: "tipoHorarioId" });
   DetalleHorarioModel.belongsTo(TipoHorarioModel, { foreignKey: "tipoHorarioId" });
 
-  // 📌 Marcaciones y dispositivos
   MarcacionModel.belongsTo(DispositivoModel, { foreignKey: "dispositivoId" });
 
-  // 📌 Relación Zona ↔ Dispositivo
   DispositivoModel.belongsTo(ZonaModel, { foreignKey: "zonaId" });
   ZonaModel.hasMany(DispositivoModel, { foreignKey: "zonaId" });
 
-  // 📌 Relación ConfigBiometrica ↔ Zona
   ConfigBiometricaModel.hasMany(ZonaModel, { foreignKey: "configId" });
   ZonaModel.belongsTo(ConfigBiometricaModel, {
     foreignKey: "configId",
-    as: "configBiometrica",
+    as: "configBiometricaZona",
+  });
+
+  // ✅ Relación con conexión remota (solo aquí)
+  ConfigBiometricaModel.belongsTo(DbConnectionModel, {
+    foreignKey: "dbConnectionId",
+    as: "conexionRemota",
   });
 };
