@@ -26,7 +26,7 @@ export const initializeRemoteDatabase = async (req: Request, res: Response): Pro
 
     await sequelize.sync();
 
-    // 🧠 Verificar existencia de modelos
+    // 🧠 Verificar existencia de modelos clave
     const Zona = sequelize.models.ZonaModel;
     const Empleado = sequelize.models.EmpleadoModel;
     const Dispositivo = sequelize.models.DispositivoModel;
@@ -54,8 +54,18 @@ export const initializeRemoteDatabase = async (req: Request, res: Response): Pro
       return;
     }
 
-    // 🌱 Insertar datos por defecto
-    await insertDefaultData(sequelize);
+    // 🧬 Construir objeto de conexión desde el modelo
+    const connectionInfo = {
+      servidor: config.servidor,
+      puerto: config.puerto,
+      baseDatos: config.baseDatos,
+      usuario: config.usuario,
+      contrasena: config.contrasena,
+      ssl: config.ssl,
+    };
+
+    // 🌱 Insertar datos por defecto (zonas, catálogos, configBiometrica)
+    await insertDefaultData(sequelize, connectionInfo);
 
     res.status(200).json({ mensaje: "✅ Base de datos inicializada exitosamente." });
 

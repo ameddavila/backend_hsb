@@ -1,46 +1,51 @@
-import EmpleadoModel from "@modules/biometrico/models/empleado.model";
-import DepartamentoModel from "@modules/biometrico/models/departamento.model";
-import FuenteFinanciamientoModel from "@modules/biometrico/models/fuenteFinanciamiento.model";
-import CargoModel from "@modules/biometrico/models/cargo.model";
-import CredencialBiometricaModel from "@modules/biometrico/models/credencialBiometrica.model";
-import PermisoModel from "@modules/biometrico/models/permiso.model";
-import TipoPermisoModel from "@modules/biometrico/models/tipoPermiso.model";
-import AsignacionTurnoModel from "@modules/biometrico/models/asignacionTurno.model";
-import TipoHorarioModel from "@modules/biometrico/models/tipoHorario.model";
-import DetalleHorarioModel from "@modules/biometrico/models/detalleHorario.model";
-import MarcacionModel from "@modules/biometrico/models/marcacion.model";
-import DispositivoModel from "@modules/biometrico/models/dispositivo.model";
-import ConfigBiometricaModel from "@modules/biometrico/models/configBiometrica.model";
-import ZonaModel from "@modules/biometrico/models/zona.model";
+import { Sequelize } from "sequelize-typescript";
 
-export const associateBiometricoModels = () => {
-  // Empleado → Catálogos
+// ✅ Importa todos los modelos directamente
+import EmpleadoModel from "../models/empleado.model";
+import DepartamentoModel from "../models/departamento.model";
+import FuenteFinanciamientoModel from "../models/fuenteFinanciamiento.model";
+import CargoModel from "../models/cargo.model";
+import CredencialBiometricaModel from "../models/credencialBiometrica.model";
+import PermisoModel from "../models/permiso.model";
+import TipoPermisoModel from "../models/tipoPermiso.model";
+import AsignacionTurnoModel from "../models/asignacionTurno.model";
+import TipoHorarioModel from "../models/tipoHorario.model";
+import DetalleHorarioModel from "../models/detalleHorario.model";
+import MarcacionModel from "../models/marcacion.model";
+import DispositivoModel from "../models/dispositivo.model";
+import ZonaModel from "../models/zona.model";
+import ConfigBiometricaModel from "../models/configBiometrica.model";
+
+/**
+ * Establece relaciones entre modelos conectados dinámicamente
+ */
+export const associateBiometricoModels = (sequelize: Sequelize) => {
+  // 📌 Relaciones del empleado
   EmpleadoModel.belongsTo(DepartamentoModel, { foreignKey: "departamentoId" });
   EmpleadoModel.belongsTo(FuenteFinanciamientoModel, { foreignKey: "fuenteFinanciamientoId" });
   EmpleadoModel.belongsTo(CargoModel, { foreignKey: "cargoId" });
 
-  // Empleado → Relacionados
   EmpleadoModel.hasMany(CredencialBiometricaModel, { foreignKey: "empleadoId" });
   EmpleadoModel.hasMany(PermisoModel, { foreignKey: "empleadoId" });
   EmpleadoModel.hasMany(AsignacionTurnoModel, { foreignKey: "empleadoId" });
   EmpleadoModel.hasMany(MarcacionModel, { foreignKey: "empleadoId" });
 
-  // Permiso → TipoPermiso
+  // 📌 Relaciones de permisos y turnos
   PermisoModel.belongsTo(TipoPermisoModel, { foreignKey: "tipoPermisoId" });
-
-  // Asignación de turnos → Tipo horario
   AsignacionTurnoModel.belongsTo(TipoHorarioModel, { foreignKey: "tipoHorarioId" });
-
-  // Detalle de horario → Tipo horario
   DetalleHorarioModel.belongsTo(TipoHorarioModel, { foreignKey: "tipoHorarioId" });
 
-  // Marcación → Dispositivo
+  // 📌 Marcaciones y dispositivos
   MarcacionModel.belongsTo(DispositivoModel, { foreignKey: "dispositivoId" });
 
-  // Configuración biométrica → Dispositivo
-  ConfigBiometricaModel.belongsTo(DispositivoModel, { foreignKey: "dispositivoId" });
-
-  // Dispositivo → Zona
+  // 📌 Relación Zona ↔ Dispositivo
   DispositivoModel.belongsTo(ZonaModel, { foreignKey: "zonaId" });
   ZonaModel.hasMany(DispositivoModel, { foreignKey: "zonaId" });
+
+  // 📌 Relación ConfigBiometrica ↔ Zona
+  ConfigBiometricaModel.hasMany(ZonaModel, { foreignKey: "configId" });
+  ZonaModel.belongsTo(ConfigBiometricaModel, {
+    foreignKey: "configId",
+    as: "configBiometrica",
+  });
 };

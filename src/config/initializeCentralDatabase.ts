@@ -53,7 +53,8 @@ export const initializeCentralDatabase = async (): Promise<Sequelize> => {
   };
 
   const modulesDir = path.join(__dirname, "../modules");
-  const folders = readdirSync(modulesDir).filter(f => f !== "biometrico");
+  //const folders = readdirSync(modulesDir).filter(f => f !== "biometrico");
+  const folders = readdirSync(modulesDir);
 
   let allModels: ModelCtor<Model>[] = [];
   for (const folder of folders) {

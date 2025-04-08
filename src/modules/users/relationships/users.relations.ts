@@ -1,4 +1,5 @@
 // src/relationships/relationships.ts
+import { Sequelize } from "sequelize-typescript";
 import UserModel from "@modules/users/models/user.model";
 import RoleModel from "@modules/users/models/role.model";
 import PermissionModel from "@modules/users/models/permission.model";
@@ -7,7 +8,7 @@ import UserRoleModel from "@modules/users/models/userRole.model";
 import RolePermissionModel from "@modules/users/models/rolePermission.model";
 import RoleMenuModel from "@modules/users/models/roleMenu.model";
 
-export const initializeRelationships = (): void => {
+export const initializeUserRelationships = (sequelize: Sequelize): void => {
   // Usuarios ↔ Roles (Muchos a muchos)
   UserModel.belongsToMany(RoleModel, {
     through: UserRoleModel,

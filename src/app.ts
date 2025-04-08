@@ -10,7 +10,7 @@ import fs from "fs";
 import path from "path";
 import https from "https";
 import { cleanExpiredTokens } from "./scripts/cleanExpiredTokens";
-import { initializeRelationships } from "@relationships/relationships";
+import { setupAllRelationships } from "@relationships/index";
 import routes from "./routes";
 import { errorMiddleware } from "@middleware/error.middleware";
 import seedData from "./scripts/seedData";
@@ -72,7 +72,7 @@ const startServer = async () => {
     process.emitWarning = () => {}; // Silenciar advertencias
 
     const sequelize = await initializeCentralDatabase();
-    initializeRelationships();
+    setupAllRelationships(sequelize); // ✅
     await sequelize.authenticate();
 
     console.log("✅ Conexión a la base de datos configurada correctamente.");

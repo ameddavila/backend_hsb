@@ -33,7 +33,7 @@ export const initializeRemoteDatabase = async (config: RemoteConfig): Promise<Se
   });
 
   sequelize.addModels(rrhhModels);
-  associateBiometricoModels(); // relaciones específicas
+  associateBiometricoModels(sequelize); // relaciones específicas
 
   await sequelize.authenticate();
   console.log(`✅ Conectado a base remota: ${config.database}`);

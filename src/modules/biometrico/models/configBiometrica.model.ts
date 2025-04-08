@@ -1,39 +1,64 @@
-import { Table, Column, Model, DataType, ForeignKey } from "sequelize-typescript";
-import DispositivoModel from "./dispositivo.model";
+// src/modules/biometrico/models/configBiometrica.model.ts
+import {
+  Table,
+  Column,
+  Model,
+  PrimaryKey,
+  AutoIncrement,
+  DataType,
+  AllowNull,
+  ForeignKey,
+  BelongsTo,
+} from "sequelize-typescript";
+import DbConnectionModel from "@modules/config/models/dbConnection.model"; // ✅ Importado
 
-@Table({ tableName: "ConfigBiometrica" })
+@Table({
+  tableName: "config_biometrica",
+  timestamps: false,
+})
 export default class ConfigBiometricaModel extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
+  @PrimaryKey
+  @AutoIncrement
+  @Column(DataType.INTEGER)
   configId!: number;
 
+  @AllowNull(false)
   @Column(DataType.STRING)
   descripcion!: string;
 
+  @AllowNull(false)
   @Column(DataType.STRING)
   tipoConexion!: string;
 
+  @AllowNull(false)
   @Column(DataType.STRING)
   nombreBD!: string;
 
+  @AllowNull(false)
   @Column(DataType.STRING)
   usuarioBD!: string;
 
-  @Column(DataType.BLOB)
-  contrasenaBD!: Buffer;
-
+  @AllowNull(false)
   @Column(DataType.STRING)
   servidorBD!: string;
 
+  @AllowNull(false)
   @Column(DataType.INTEGER)
   puertoBD!: number;
 
-  @ForeignKey(() => DispositivoModel)
-  @Column({ field: 'dispositivoId', type: DataType.INTEGER })
-  dispositivoId!: number;
-
-  @Column({ type: DataType.BOOLEAN, defaultValue: false })
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
   sslHabilitado!: boolean;
 
+  @AllowNull(true)
   @Column(DataType.DATE)
   ultimaSincronizacion?: Date;
+
+  // ✅ NUEVA RELACIÓN: conexión remota asociada
+  @ForeignKey(() => DbConnectionModel)
+  @Column(DataType.INTEGER)
+  dbConnectionId!: number;
+
+  @BelongsTo(() => DbConnectionModel, { foreignKey: "dbConnectionId", as: "conexionRemota" })
+  conexionRemota!: DbConnectionModel;
 }

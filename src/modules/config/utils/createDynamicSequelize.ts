@@ -31,7 +31,7 @@ export const createDynamicSequelize = async (config: ConnectionConfig): Promise<
 
   // Agregar modelos y relaciones
   sequelize.addModels(rrhhModels);
-  associateBiometricoModels();
+  associateBiometricoModels(sequelize);
 
   await sequelize.authenticate();
   return sequelize;
