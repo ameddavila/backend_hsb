@@ -1,12 +1,10 @@
+// ✅ FILE: src/modules/users/models/permission.model.ts
 import {
   Table,
   Column,
   Model,
   DataType,
-  BelongsToMany,
 } from "sequelize-typescript";
-import RoleModel from "./role.model";
-import RolePermissionModel from "./rolePermission.model";
 
 @Table({ tableName: "Permissions" })
 export default class PermissionModel extends Model {
@@ -16,10 +14,10 @@ export default class PermissionModel extends Model {
   @Column({ type: DataType.STRING(100), allowNull: false })
   name!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false }) // ✅ Aquí
+  @Column({ type: DataType.STRING(50), allowNull: false })
   action!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false }) // ✅ Si también usas 'module'
+  @Column({ type: DataType.STRING(50), allowNull: false })
   module!: string;
 
   @Column({ type: DataType.STRING(255), allowNull: true })
@@ -30,7 +28,4 @@ export default class PermissionModel extends Model {
 
   @Column({ type: DataType.DATE, allowNull: false })
   updatedAt!: Date;
-
-  @BelongsToMany(() => RoleModel, () => RolePermissionModel)
-  roles?: RoleModel[];
 }

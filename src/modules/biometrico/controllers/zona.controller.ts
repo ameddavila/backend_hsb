@@ -1,4 +1,5 @@
-import { RequestHandler } from "express";
+// ✅ src/modules/biometrico/controllers/zona.controller.ts
+import { Request, Response } from "express";
 import { zonaSchema } from "../validators/zona.validator";
 import {
   crearZona,
@@ -9,7 +10,7 @@ import {
 } from "../services/zona.service";
 
 // 🔹 Crear zona
-export const crearZonaController: RequestHandler = async (req, res) => {
+export const crearZonaController = async (req: Request, res: Response): Promise<void> => {
   const { error, value } = zonaSchema.validate(req.body);
   if (error) {
     res.status(400).json({ error: error.details[0]?.message });
@@ -17,7 +18,7 @@ export const crearZonaController: RequestHandler = async (req, res) => {
   }
 
   try {
-    const nuevaZona = await crearZona(value);
+    const nuevaZona = await crearZona(value, req);
     res.status(201).json(nuevaZona);
   } catch (err: any) {
     console.error("❌ Error al crear zona:", err.message);
@@ -26,10 +27,9 @@ export const crearZonaController: RequestHandler = async (req, res) => {
 };
 
 // 🔹 Obtener todas las zonas
-export const obtenerZonasController: RequestHandler = async (req, res) => {
+export const obtenerZonasController = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log("ENTRA AMED");
-    const zonas = await obtenerZonas();
+    const zonas = await obtenerZonas(req);
     res.json(zonas);
   } catch (err) {
     console.error("❌ Error al obtener zonas:", err);
@@ -38,11 +38,11 @@ export const obtenerZonasController: RequestHandler = async (req, res) => {
 };
 
 // 🔹 Obtener zona por ID
-export const getZonaById: RequestHandler = async (req, res) => {
+export const getZonaById = async (req: Request, res: Response): Promise<void> => {
   const zonaId = Number(req.params.id);
 
   try {
-    const zona = await obtenerZonaPorId(zonaId);
+    const zona = await obtenerZonaPorId(zonaId, req);
     if (!zona) {
       res.status(404).json({ error: "Zona no encontrada" });
       return;
@@ -56,7 +56,7 @@ export const getZonaById: RequestHandler = async (req, res) => {
 };
 
 // 🔹 Actualizar zona
-export const updateZona: RequestHandler = async (req, res) => {
+export const updateZona = async (req: Request, res: Response): Promise<void> => {
   const zonaId = Number(req.params.id);
   const { error, value } = zonaSchema.validate(req.body);
   if (error) {
@@ -65,7 +65,7 @@ export const updateZona: RequestHandler = async (req, res) => {
   }
 
   try {
-    const zonaActualizada = await actualizarZona(zonaId, value);
+    const zonaActualizada = await actualizarZona(zonaId, value, req);
     if (!zonaActualizada) {
       res.status(404).json({ error: "Zona no encontrada" });
       return;
@@ -79,11 +79,11 @@ export const updateZona: RequestHandler = async (req, res) => {
 };
 
 // 🔹 Eliminar zona
-export const deleteZona: RequestHandler = async (req, res) => {
+export const deleteZona = async (req: Request, res: Response): Promise<void> => {
   const zonaId = Number(req.params.id);
 
   try {
-    const eliminada = await eliminarZona(zonaId);
+    const eliminada = await eliminarZona(zonaId, req);
     if (!eliminada) {
       res.status(404).json({ error: "Zona no encontrada o ya eliminada" });
       return;

@@ -1,4 +1,4 @@
-// src/relationships/users.relations.ts
+// ✅ FILE: src/modules/users/relationships/users.relations.ts
 import { Sequelize } from "sequelize-typescript";
 import {
   UserModel,
@@ -11,7 +11,7 @@ import {
 } from "@modules/users/models";
 
 export const initializeUserRelationships = (sequelize: Sequelize): void => {
-  // 👤 Usuario ↔ Rol
+  // Usuario ↔ Rol
   UserModel.belongsToMany(RoleModel, {
     through: UserRoleModel,
     foreignKey: "userId",
@@ -26,33 +26,33 @@ export const initializeUserRelationships = (sequelize: Sequelize): void => {
     as: "users",
   });
 
-  // 🔐 Rol ↔ Permiso (evita duplicados de alias)
+  // Rol ↔ Permiso
   RoleModel.belongsToMany(PermissionModel, {
     through: RolePermissionModel,
     foreignKey: "roleId",
     otherKey: "permissionId",
-    as: "permisos", // ✅ Alias personalizado (no "permissions")
+    as: "permisos", // Alias personalizado
   });
 
   PermissionModel.belongsToMany(RoleModel, {
     through: RolePermissionModel,
     foreignKey: "permissionId",
     otherKey: "roleId",
-    as: "rolesConEstePermiso", // ✅ Alias único
+    as: "rolesConEstePermiso",
   });
 
-  // 📋 Rol ↔ Menú
+  // Rol ↔ Menú
   RoleModel.belongsToMany(MenuModel, {
     through: RoleMenuModel,
     foreignKey: "roleId",
     otherKey: "menuId",
-    as: "menus", // ✅ Alias OK
+    as: "menus",
   });
 
   MenuModel.belongsToMany(RoleModel, {
     through: RoleMenuModel,
     foreignKey: "menuId",
     otherKey: "roleId",
-    as: "rolesConAcceso", // ✅ Alias único
+    as: "rolesConAcceso",
   });
 };

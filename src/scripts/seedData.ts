@@ -1,15 +1,17 @@
-// src/scripts/seedData.ts
-
+import bcrypt from "bcrypt";
 import RoleModel from "../modules/users/models/role.model";
 import PermissionModel from "../modules/users/models/permission.model";
-import UserModel from "../modules/users/models/user.model";
 import MenuModel from "../modules/users/models/menu.model";
-import bcrypt from "bcrypt";
+import UserModel from "../modules/users/models/user.model";
+import DbConnectionModel from "@modules/config/models/dbConnection.model";
+
 
 const seedData = async () => {
   try {
-    // 1. Lista de permisos
-    const permissionsToCreate = [
+    console.log("🌱 Iniciando seeder...");
+
+    // 1. Crear permisos
+    const permissionList = [
       { module: "Users", action: "read" },
       { module: "Users", action: "create" },
       { module: "Users", action: "edit" },
@@ -28,8 +30,9 @@ const seedData = async () => {
       { module: "Menus", action: "delete" },
     ];
 
-    const createdPermissions = [];
-    for (const perm of permissionsToCreate) {
+    const createdPermissions: PermissionModel[] = [];
+
+    for (const perm of permissionList) {
       const [permission] = await PermissionModel.findOrCreate({
         where: { module: perm.module, action: perm.action },
         defaults: {
@@ -45,7 +48,7 @@ const seedData = async () => {
     const [adminRole] = await RoleModel.findOrCreate({
       where: { name: "Administrador" },
       defaults: {
-        description: "Rol de administrador con todos los permisos",
+        description: "Rol con acceso completo",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -54,7 +57,7 @@ const seedData = async () => {
     const [userRole] = await RoleModel.findOrCreate({
       where: { name: "Usuario" },
       defaults: {
-        description: "Rol de usuario con permisos limitados",
+        description: "Rol estándar",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -63,130 +66,71 @@ const seedData = async () => {
     const [guestRole] = await RoleModel.findOrCreate({
       where: { name: "Invitado" },
       defaults: {
-        description: "Rol con acceso limitado",
+        description: "Rol con acceso mínimo",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
 
-    // 3. Asignar permisos
-    await adminRole.addPermissions(createdPermissions);
-    const userReadPermissions = createdPermissions.filter(p => p.action === "read");
-    await userRole.addPermissions(userReadPermissions);
+    // 3. Asignar permisos a roles
+    await (adminRole as any).$set("permisos", createdPermissions);
+    await (userRole as any).$set(
+      "permisos",
+      createdPermissions.filter((p) => p.action === "read")
+    );
 
-    // 4. Crear menús
-    const [dashboardMenu] = await MenuModel.findOrCreate({
-      where: { name: "Dashboard" },
-      defaults: {
-        path: "/dashboard",
-        icon: "pi pi-home",
-        parentId: null,
-        isActive: true,
-        sortOrder: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+    // 4. Crear menús jerárquicos
+    const menuData = [
+      { name: "Dashboard", path: "/dashboard", icon: "pi pi-home", parentName: null, sortOrder: 1 },
+      { name: "Administración", path: "/admin", icon: "pi pi-cog", parentName: null, sortOrder: 2 },
+      { name: "Usuarios", path: "/admin/users", icon: "pi pi-users", parentName: "Administración", sortOrder: 1 },
+      { name: "Roles", path: "/admin/roles", icon: "pi pi-id-card", parentName: "Administración", sortOrder: 2 },
+      { name: "Permisos", path: "/admin/permissions", icon: "pi pi-key", parentName: "Administración", sortOrder: 3 },
+      { name: "Menús", path: "/admin/menus", icon: "pi pi-list", parentName: "Administración", sortOrder: 4 },
+      { name: "Crear Menú", path: "/admin/menus/create", icon: "pi pi-plus", parentName: "Menús", sortOrder: 1 },
+      { name: "Biometricos", path: "/biometrico", icon: "pi pi-plus", parentName: "Administración", sortOrder: 1 },
+      { name: "Zonas", path: "/biometrico/zonas", icon: "pi pi-plus", parentName: "Biometricos", sortOrder: 1 },
+      { name: "Nueva Zona", path: "/biometrico/zonas/create", icon: "pi pi-plus", parentName: "Zonas", sortOrder: 1 },
+    ];
 
-    const [adminMenu] = await MenuModel.findOrCreate({
-      where: { name: "Administración" },
-      defaults: {
-        path: "/admin",
-        icon: "pi pi-cog",
-        parentId: null,
-        isActive: true,
-        sortOrder: 2,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+    const menuInstances: Record<string, MenuModel> = {};
 
-    const [usersMenu] = await MenuModel.findOrCreate({
-      where: { name: "Usuarios" },
-      defaults: {
-        path: "/admin/users",
-        icon: "pi pi-users",
-        parentId: adminMenu.id,
-        isActive: true,
-        sortOrder: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+    for (const item of menuData) {
+      const parentId = item.parentName ? menuInstances[item.parentName]?.id || null : null;
 
-    const [rolesMenu] = await MenuModel.findOrCreate({
-      where: { name: "Roles" },
-      defaults: {
-        path: "/admin/roles",
-        icon: "pi pi-id-card",
-        parentId: adminMenu.id,
-        isActive: true,
-        sortOrder: 2,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+      const [menu] = await MenuModel.findOrCreate({
+        where: { name: item.name },
+        defaults: {
+          path: item.path,
+          icon: item.icon,
+          parentId,
+          isActive: true,
+          sortOrder: item.sortOrder,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
 
-    const [permissionsMenu] = await MenuModel.findOrCreate({
-      where: { name: "Permisos" },
-      defaults: {
-        path: "/admin/permissions",
-        icon: "pi pi-key",
-        parentId: adminMenu.id,
-        isActive: true,
-        sortOrder: 3,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    const [menusParent] = await MenuModel.findOrCreate({
-      where: { name: "Menús" },
-      defaults: {
-        path: "/admin/menus",
-        icon: "pi pi-list",
-        parentId: adminMenu.id,
-        isActive: true,
-        sortOrder: 4,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    const [createMenu] = await MenuModel.findOrCreate({
-      where: { name: "Crear Menú" },
-      defaults: {
-        path: "/admin/menus/create",
-        icon: "pi pi-plus",
-        parentId: menusParent.id,
-        isActive: true,
-        sortOrder: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+      menuInstances[item.name] = menu;
+    }
 
     // 5. Asignar menús a roles
-    await adminRole.addMenus([
-      dashboardMenu,
-      adminMenu,
-      usersMenu,
-      rolesMenu,
-      permissionsMenu,
-      menusParent,
-      createMenu,
-    ]);
-
-    await userRole.addMenus([dashboardMenu, usersMenu]);
-    await guestRole.addMenus([dashboardMenu]);
+    await (adminRole as any).$set("menus", Object.values(menuInstances));
+    await (userRole as any).$set("menus", [
+      menuInstances["Dashboard"],
+      menuInstances["Usuarios"],
+    ].filter(Boolean));
+    await (guestRole as any).$set("menus", [
+      menuInstances["Dashboard"],
+    ].filter(Boolean));
 
     // 6. Crear usuario administrador
     const passwordHash = await bcrypt.hash("Admin1234!", 10);
+
     const [adminUser] = await UserModel.findOrCreate({
       where: { email: "amed.dav@gmail.com" },
       defaults: {
         username: "amed.dav",
-        email: "amed.dav@gmail.com",
         password: passwordHash,
         firstName: "Amed",
         lastName: "Davila",
@@ -198,10 +142,29 @@ const seedData = async () => {
     });
 
     await adminUser.$add("roles", adminRole);
+    // 7. Insertar configuración estándar en config_Connections
+    const [defaultConnection] = await DbConnectionModel.findOrCreate({
+      where: { nombre: "Conexión Principal" },
+      defaults: {
+        nombre: "Conexión Principal",
+        descripcion: "Conexión estándar a base biométrica local",
+        servidor: "localhost",
+        puerto: 1433,
+        usuario: "sa",
+        contrasena: "123456",
+        baseDatos: "dbBiometrico1",
+        ssl: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
 
+    console.log("🔌 Conexión estándar creada:", defaultConnection.nombre);
+
+    
     console.log("✅ Seeder ejecutado correctamente.");
   } catch (error) {
-    console.error("❌ Error al insertar datos:", error);
+    console.error("❌ Error al ejecutar el seeder:", error);
   }
 };
 
